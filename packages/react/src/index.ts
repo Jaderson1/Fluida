@@ -1,0 +1,1 @@
+export const REACT_ADAPTER_VERSION = '0.0.1';

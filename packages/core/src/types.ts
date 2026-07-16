@@ -1,4 +1,6 @@
-export type FluidaOrientation = 'portrait' | 'landscape';
+import type { FluidaOrientation } from './environment/types';
+
+export type { FluidaOrientation } from './environment/types';
 
 export interface FluidaSnapshot {
   readonly width: number;

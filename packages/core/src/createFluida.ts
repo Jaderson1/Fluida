@@ -1,6 +1,13 @@
-import type { FluidaConfig, FluidaInstance, FluidaSnapshot } from './types';
+import type {
+  FluidaConfig,
+  FluidaInstance,
+  FluidaSnapshot,
+} from './types';
 
-const DEFAULT_SNAPSHOT: FluidaSnapshot = {
+import { createBrowserEnvironmentReader } from './environment/createBrowserEnvironmentReader';
+import { createServerEnvironmentReader } from './environment/createServerEnvironmentReader';
+
+const SERVER_SNAPSHOT: FluidaSnapshot = {
   width: 0,
   height: 0,
   orientation: 'portrait',
@@ -10,16 +17,21 @@ const DEFAULT_SNAPSHOT: FluidaSnapshot = {
 export function createFluida(
   _config?: FluidaConfig,
 ): FluidaInstance {
+  const reader =
+    typeof window === 'undefined'
+      ? createServerEnvironmentReader()
+      : createBrowserEnvironmentReader();
+
   return {
     getSnapshot() {
-      return DEFAULT_SNAPSHOT;
+      return reader.readEnvironment();
     },
 
     getServerSnapshot() {
-      return DEFAULT_SNAPSHOT;
+      return SERVER_SNAPSHOT;
     },
 
-    subscribe(_listener) {
+    subscribe() {
       return () => {};
     },
 

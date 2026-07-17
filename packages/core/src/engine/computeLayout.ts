@@ -1,10 +1,16 @@
-import type { EnvironmentSnapshot } from '../environment/types';
-import type { Layout } from './types';
+import type { LayoutTokens } from './types';
 
-export function computeLayout(
-  _environment: EnvironmentSnapshot,
-): Layout {
+export function computeLayout(): LayoutTokens {
   return {
     breakpoint: 'mobile',
+    grid: {
+      columns: 4,
+    },
+    spacing: {
+      page: 16,
+    },
+    typography: {
+      scale: 1,
+    },
   };
 }

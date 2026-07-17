@@ -3,6 +3,9 @@ export type Breakpoint =
   | 'tablet'
   | 'desktop';
 
+export type Breakpoints =
+  Readonly<Record<Breakpoint, number>>;
+
 export interface GridLayout {
   readonly columns: number;
 }
@@ -13,6 +16,13 @@ export interface SpacingLayout {
 
 export interface TypographyLayout {
   readonly scale: number;
+}
+
+export interface TypographyConfig {
+  readonly minimumWidth?: number;
+  readonly maximumWidth?: number;
+  readonly minimumScale?: number;
+  readonly maximumScale?: number;
 }
 
 export interface LayoutTokens {

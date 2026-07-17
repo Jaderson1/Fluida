@@ -1,4 +1,5 @@
 import type { FluidaOrientation } from './environment/types';
+import type { Breakpoints } from './engine/types';
 
 export type { FluidaOrientation } from './environment/types';
 
@@ -10,7 +11,7 @@ export interface FluidaSnapshot {
 }
 
 export interface FluidaConfig {
-  readonly breakpoints?: Readonly<Record<string, number>>;
+  readonly breakpoints?: Breakpoints;
 }
 
 export interface FluidaInstance {

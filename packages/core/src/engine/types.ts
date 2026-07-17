@@ -25,9 +25,22 @@ export interface TypographyConfig {
   readonly maximumScale?: number;
 }
 
+export interface SpacingConfig {
+  readonly minimumWidth?: number;
+  readonly maximumWidth?: number;
+  readonly minimumPadding?: number;
+  readonly maximumPadding?: number;
+}
+
 export interface LayoutTokens {
   readonly breakpoint: Breakpoint;
   readonly grid: GridLayout;
   readonly spacing: SpacingLayout;
   readonly typography: TypographyLayout;
+}
+
+export interface EngineConfig {
+  readonly breakpoints?: Breakpoints;
+  readonly spacing?: SpacingConfig;
+  readonly typography?: TypographyConfig;
 }

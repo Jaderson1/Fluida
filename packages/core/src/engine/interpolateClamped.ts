@@ -1,10 +1,22 @@
+export interface InterpolateClampedOptions {
+  readonly value: number;
+  readonly inputMinimum: number;
+  readonly inputMaximum: number;
+  readonly outputMinimum: number;
+  readonly outputMaximum: number;
+}
+
 export function interpolateClamped(
-  value: number,
-  inputMinimum: number,
-  inputMaximum: number,
-  outputMinimum: number,
-  outputMaximum: number,
+  options: InterpolateClampedOptions,
 ): number {
+  const {
+    value,
+    inputMinimum,
+    inputMaximum,
+    outputMinimum,
+    outputMaximum,
+  } = options;
+
   if (inputMaximum <= inputMinimum) {
     throw new Error(
       'The maximum input value must be greater than the minimum input value.',

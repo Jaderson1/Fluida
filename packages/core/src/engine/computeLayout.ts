@@ -1,16 +1,31 @@
-import type { LayoutTokens } from './types';
+import type {
+  EngineConfig,
+  LayoutTokens,
+} from './types';
 
-export function computeLayout(): LayoutTokens {
+import { computeBreakpoint } from './computeBreakpoint';
+import { computeColumns } from './computeColumns';
+import { computeSpacing } from './computeSpacing';
+import { computeTypography } from './computeTypography';
+import { DEFAULT_BREAKPOINTS } from './defaultBreakpoints';
+
+export function computeLayout(
+  width: number,
+  config: EngineConfig = {},
+): LayoutTokens {
+  const breakpoints = config.breakpoints ?? DEFAULT_BREAKPOINTS;
+
+  const breakpoint = computeBreakpoint(width, breakpoints);
+  const columns = computeColumns(breakpoint);
+  const spacing = computeSpacing(width, config.spacing);
+  const typography = computeTypography(width, config.typography);
+
   return {
-    breakpoint: 'mobile',
+    breakpoint,
     grid: {
-      columns: 4,
+      columns,
     },
-    spacing: {
-      page: 16,
-    },
-    typography: {
-      scale: 1,
-    },
+    spacing,
+    typography,
   };
 }

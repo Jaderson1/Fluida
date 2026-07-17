@@ -26,13 +26,13 @@ export function computeTypography(
   const maximumScale =
     config.maximumScale ?? DEFAULT_MAXIMUM_SCALE;
 
-  const scale = interpolateClamped(
-    width,
-    minimumWidth,
-    maximumWidth,
-    minimumScale,
-    maximumScale,
-  );
+  const scale = interpolateClamped({
+    value: width,
+    inputMinimum: minimumWidth,
+    inputMaximum: maximumWidth,
+    outputMinimum: minimumScale,
+    outputMaximum: maximumScale,
+  });
 
   return {
     scale,

@@ -1,26 +1,38 @@
-import type { SpacingLayout } from './types';
+import type {
+  SpacingConfig,
+  SpacingLayout,
+} from './types';
+
+import { interpolateClamped } from './interpolateClamped';
+
+const DEFAULT_MINIMUM_WIDTH = 320;
+const DEFAULT_MAXIMUM_WIDTH = 1440;
+const DEFAULT_MINIMUM_PADDING = 16;
+const DEFAULT_MAXIMUM_PADDING = 48;
 
 export function computeSpacing(
   width: number,
+  config: SpacingConfig = {},
 ): SpacingLayout {
-  const minimumWidth = 320;
-  const maximumWidth = 1440;
+  const minimumWidth =
+    config.minimumWidth ?? DEFAULT_MINIMUM_WIDTH;
 
-  const minimumPadding = 16;
-  const maximumPadding = 48;
+  const maximumWidth =
+    config.maximumWidth ?? DEFAULT_MAXIMUM_WIDTH;
 
-  const normalizedWidth = Math.min(
-    Math.max(width, minimumWidth),
-    maximumWidth,
-  );
+  const minimumPadding =
+    config.minimumPadding ?? DEFAULT_MINIMUM_PADDING;
 
-  const progress =
-    (normalizedWidth - minimumWidth) /
-    (maximumWidth - minimumWidth);
+  const maximumPadding =
+    config.maximumPadding ?? DEFAULT_MAXIMUM_PADDING;
 
-  const page =
-    minimumPadding +
-    progress * (maximumPadding - minimumPadding);
+  const page = interpolateClamped({
+    value: width,
+    inputMinimum: minimumWidth,
+    inputMaximum: maximumWidth,
+    outputMinimum: minimumPadding,
+    outputMaximum: maximumPadding,
+  });
 
   return {
     page,

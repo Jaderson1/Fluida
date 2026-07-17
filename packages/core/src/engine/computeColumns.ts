@@ -12,5 +12,12 @@ export function computeColumns(
 
     case 'desktop':
       return 12;
+
+    default:
+      // Alcançável por quem chama fora do TypeScript (uma prop do
+      // Dash, ou JS puro que ignora o tipo) com um valor fora de
+      // Breakpoint. Cai pro valor mais conservador em vez de
+      // devolver undefined em runtime.
+      return 4;
   }
 }

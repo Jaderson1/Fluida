@@ -1,4 +1,5 @@
 export { createFluida } from './createFluida';
+export { FluidaConfigError } from './resolveFluidaConfig';
 
 export type {
   FluidaConfig,
@@ -10,6 +11,9 @@ export type {
 export type {
   Breakpoint,
   Breakpoints,
+  ContainerConfig,
+  ContainerLayout,
+  ContainerTier,
   GridLayout,
   LayoutTokens,
   SpacingConfig,
@@ -17,5 +21,3 @@ export type {
   TypographyConfig,
   TypographyLayout,
 } from './engine/types';
-
-export const CORE_VERSION = '0.0.1';

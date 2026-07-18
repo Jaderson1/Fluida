@@ -1,6 +1,8 @@
 import type { FluidaOrientation } from './environment/types';
+
 import type {
   Breakpoints,
+  ContainerConfig,
   LayoutTokens,
   SpacingConfig,
   TypographyConfig,
@@ -19,13 +21,19 @@ export interface FluidaConfig {
   readonly breakpoints?: Breakpoints;
   readonly spacing?: SpacingConfig;
   readonly typography?: TypographyConfig;
+  readonly container?: ContainerConfig;
 }
 
 export interface FluidaInstance {
   getSnapshot(): FluidaSnapshot;
+
   getServerSnapshot(): FluidaSnapshot;
+
   getLayout(): LayoutTokens;
+
   getServerLayout(): LayoutTokens;
+
   subscribe(listener: () => void): () => void;
+
   destroy(): void;
 }

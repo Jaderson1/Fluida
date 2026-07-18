@@ -5,6 +5,7 @@ import type {
 
 import { computeBreakpoint } from './computeBreakpoint';
 import { computeColumns } from './computeColumns';
+import { computeContainer } from './computeContainer';
 import { computeSpacing } from './computeSpacing';
 import { computeTypography } from './computeTypography';
 import { DEFAULT_BREAKPOINTS } from './defaultBreakpoints';
@@ -19,6 +20,7 @@ export function computeLayout(
   const columns = computeColumns(breakpoint);
   const spacing = computeSpacing(width, config.spacing);
   const typography = computeTypography(width, config.typography);
+  const container = computeContainer(width, config.container);
 
   return {
     breakpoint,
@@ -27,5 +29,6 @@ export function computeLayout(
     },
     spacing,
     typography,
+    container,
   };
 }

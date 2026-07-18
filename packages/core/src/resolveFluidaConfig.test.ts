@@ -19,6 +19,7 @@ describe('resolveFluidaConfig — valid configuration', () => {
       minimumScale: 1,
       maximumScale: 1.25,
     });
+    expect(resolved.container.tiers.length).toBeGreaterThan(0);
   });
 
   it('preserves a fully custom, valid configuration exactly', () => {
@@ -35,6 +36,12 @@ describe('resolveFluidaConfig — valid configuration', () => {
         maximumWidth: 900,
         minimumScale: 0.9,
         maximumScale: 1.1,
+      },
+      container: {
+        tiers: [
+          { minimumWidth: 0, containerMaxWidth: 400 },
+          { minimumWidth: 600, containerMaxWidth: 800 },
+        ],
       },
     };
 
@@ -71,6 +78,17 @@ describe('resolveFluidaConfig — partial configuration', () => {
     });
 
     expect(resolved.breakpoints).toEqual({ mobile: 0, tablet: 768, desktop: 1024 });
+  });
+
+  it('uses default container tiers when container is entirely omitted', () => {
+    const resolved = resolveFluidaConfig({
+      spacing: { minimumPadding: 4 },
+    });
+
+    expect(resolved.container.tiers[0]).toEqual({
+      minimumWidth: 0,
+      containerMaxWidth: 480,
+    });
   });
 });
 
@@ -150,5 +168,42 @@ describe('resolveFluidaConfig — invalid configuration', () => {
 
     expect(resolved.spacing.minimumPadding).toBe(48);
     expect(resolved.spacing.maximumPadding).toBe(16);
+  });
+
+  it('throws for an empty container tier list', () => {
+    expect(() =>
+      resolveFluidaConfig({ container: { tiers: [] } }),
+    ).toThrow(FluidaConfigError);
+  });
+
+  it('throws when two container tiers share the same minimumWidth', () => {
+    expect(() =>
+      resolveFluidaConfig({
+        container: {
+          tiers: [
+            { minimumWidth: 0, containerMaxWidth: 400 },
+            { minimumWidth: 0, containerMaxWidth: 800 },
+          ],
+        },
+      }),
+    ).toThrow(/unique/);
+  });
+
+  it('throws for a negative container tier value', () => {
+    expect(() =>
+      resolveFluidaConfig({
+        container: { tiers: [{ minimumWidth: -10, containerMaxWidth: 400 }] },
+      }),
+    ).toThrow(FluidaConfigError);
+  });
+
+  it('throws for a non-finite container tier value', () => {
+    expect(() =>
+      resolveFluidaConfig({
+        container: {
+          tiers: [{ minimumWidth: 0, containerMaxWidth: Number.NaN }],
+        },
+      }),
+    ).toThrow(FluidaConfigError);
   });
 });

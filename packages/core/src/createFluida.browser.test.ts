@@ -1,13 +1,36 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import { createFluida } from './createFluida';
 import type { FluidaInstance } from './types';
 
-function setViewport(width: number, height: number, pixelRatio = 1): void {
-  Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
-  Object.defineProperty(window, 'innerHeight', { configurable: true, value: height });
-  Object.defineProperty(window, 'devicePixelRatio', { configurable: true, value: pixelRatio });
+function setViewport(
+  width: number,
+  height: number,
+  pixelRatio = 1,
+): void {
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    value: width,
+  });
+
+  Object.defineProperty(window, 'innerHeight', {
+    configurable: true,
+    value: height,
+  });
+
+  Object.defineProperty(window, 'devicePixelRatio', {
+    configurable: true,
+    value: pixelRatio,
+  });
 }
 
 function fireResize(): void {
@@ -48,6 +71,7 @@ describe('createFluida (browser mode)', () => {
 
   it('notifies a subscribed listener after a real resize event', () => {
     instance = createFluida();
+
     const listener = vi.fn();
     instance.subscribe(listener);
 
@@ -62,6 +86,7 @@ describe('createFluida (browser mode)', () => {
     instance.subscribe(() => {});
 
     const before = instance.getSnapshot();
+
     setViewport(1200, 800, 1);
     fireResize();
 
@@ -70,27 +95,39 @@ describe('createFluida (browser mode)', () => {
   });
 
   it('gives getLayout() a new reference when the width change affects the Engine', () => {
-    setViewport(390, 800, 1); // mobile
+    setViewport(390, 800, 1);
     instance = createFluida();
     instance.subscribe(() => {});
 
     const before = instance.getLayout();
-    setViewport(1200, 800, 1); // desktop
+
+    setViewport(1200, 800, 1);
     fireResize();
 
     expect(instance.getLayout()).not.toBe(before);
     expect(instance.getLayout().breakpoint).toBe('desktop');
   });
 
+  it('updates container.maxWidth via a real resize event', () => {
+    setViewport(320, 600, 1);
+    instance = createFluida();
+    instance.subscribe(() => {});
+
+    expect(instance.getLayout().container.maxWidth).toBe(480);
+
+    setViewport(1024, 700, 1);
+    fireResize();
+
+    expect(instance.getLayout().container.maxWidth).toBe(960);
+  });
+
   it('keeps getLayout() stable when only a field irrelevant to the Engine changes', () => {
-    instance = createFluida(); // 800x600 from beforeEach
+    instance = createFluida();
     instance.subscribe(() => {});
 
     const beforeSnapshot = instance.getSnapshot();
     const beforeLayout = instance.getLayout();
 
-    // Same width and height — only pixelRatio changes, which
-    // computeLayout does not read at all today.
     setViewport(800, 600, 2);
     fireResize();
 
@@ -101,10 +138,12 @@ describe('createFluida (browser mode)', () => {
 
   it('stops notifying after unsubscribe', () => {
     instance = createFluida();
+
     const listener = vi.fn();
     const unsubscribe = instance.subscribe(listener);
 
     unsubscribe();
+
     setViewport(1200, 800, 1);
     fireResize();
 
@@ -116,6 +155,7 @@ describe('createFluida (browser mode)', () => {
     instance.subscribe(() => {});
 
     const beforeSnapshot = instance.getSnapshot();
+
     instance.destroy();
 
     setViewport(1200, 800, 1);
@@ -138,9 +178,17 @@ describe('createFluida (browser mode)', () => {
     const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
 
     instance = createFluida();
-    expect(addEventListenerSpy).not.toHaveBeenCalledWith('resize', expect.any(Function));
+
+    expect(addEventListenerSpy).not.toHaveBeenCalledWith(
+      'resize',
+      expect.any(Function),
+    );
 
     instance.subscribe(() => {});
-    expect(addEventListenerSpy).toHaveBeenCalledWith('resize', expect.any(Function));
+
+    expect(addEventListenerSpy).toHaveBeenCalledWith(
+      'resize',
+      expect.any(Function),
+    );
   });
 });

@@ -12,20 +12,24 @@ describe('createFluida (server/Node mode)', () => {
     ).toThrow(FluidaConfigError);
   });
 
-  it('does not throw for a valid, fully custom config', () => {
-    expect(() =>
-      createFluida({
-        breakpoints: {
-          mobile: 0,
-          tablet: 600,
-          desktop: 900,
-        },
-        spacing: {
-          minimumPadding: 4,
-          maximumPadding: 8,
-        },
-      }),
-    ).not.toThrow();
+  it('applies a valid, fully custom config to the resulting layout', () => {
+    const instance = createFluida({
+      breakpoints: {
+        mobile: 0,
+        tablet: 600,
+        desktop: 900,
+      },
+      spacing: {
+        minimumPadding: 4,
+        maximumPadding: 8,
+      },
+    });
+
+    // Default minimumPadding is 16 — getting 4 back proves the config
+    // was actually threaded through to the Engine, not merely accepted.
+    expect(instance.getLayout().spacing.page).toBe(4);
+
+    instance.destroy();
   });
 
   it('returns the server fallback snapshot', () => {
@@ -99,9 +103,14 @@ describe('createFluida (server/Node mode)', () => {
         tablet: 100,
         desktop: 200,
       },
+      spacing: {
+        minimumPadding: 4,
+        maximumPadding: 8,
+      },
     });
 
     expect(instance.getServerLayout().breakpoint).toBe('mobile');
+    expect(instance.getServerLayout().spacing.page).toBe(4);
 
     instance.destroy();
   });

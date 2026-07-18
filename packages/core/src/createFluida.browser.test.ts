@@ -121,6 +121,53 @@ describe('createFluida (browser mode)', () => {
     expect(instance.getLayout().container.maxWidth).toBe(960);
   });
 
+  it('returns a fixed server fallback for getServerSnapshot(), regardless of the real viewport', () => {
+    setViewport(1920, 1080, 3);
+    instance = createFluida();
+
+    expect(instance.getServerSnapshot()).toEqual({
+      width: 0,
+      height: 0,
+      orientation: 'portrait',
+      pixelRatio: 1,
+    });
+  });
+
+  it('getServerSnapshot() stays the same reference across a real resize event', () => {
+    instance = createFluida();
+    instance.subscribe(() => {});
+
+    const before = instance.getServerSnapshot();
+
+    setViewport(1200, 800, 1);
+    fireResize();
+
+    expect(instance.getServerSnapshot()).toBe(before);
+  });
+
+  it('getServerLayout() stays the same reference across a real resize event', () => {
+    instance = createFluida();
+    instance.subscribe(() => {});
+
+    const before = instance.getServerLayout();
+
+    setViewport(1200, 800, 1);
+    fireResize();
+
+    expect(instance.getServerLayout()).toBe(before);
+  });
+
+  it("getServerLayout() reflects this instance's own config even in browser mode", () => {
+    instance = createFluida({
+      spacing: {
+        minimumPadding: 4,
+        maximumPadding: 8,
+      },
+    });
+
+    expect(instance.getServerLayout().spacing.page).toBe(4);
+  });
+
   it('keeps getLayout() stable when only a field irrelevant to the Engine changes', () => {
     instance = createFluida();
     instance.subscribe(() => {});

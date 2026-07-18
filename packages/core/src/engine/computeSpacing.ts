@@ -5,10 +5,10 @@ import type {
 
 import { interpolateClamped } from './interpolateClamped';
 
-const DEFAULT_MINIMUM_WIDTH = 320;
-const DEFAULT_MAXIMUM_WIDTH = 1440;
-const DEFAULT_MINIMUM_PADDING = 16;
-const DEFAULT_MAXIMUM_PADDING = 48;
+export const DEFAULT_MINIMUM_WIDTH = 320;
+export const DEFAULT_MAXIMUM_WIDTH = 1440;
+export const DEFAULT_MINIMUM_PADDING = 16;
+export const DEFAULT_MAXIMUM_PADDING = 48;
 
 export function computeSpacing(
   width: number,

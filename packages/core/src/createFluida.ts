@@ -7,7 +7,8 @@ import type {
 import { createBrowserEnvironmentReader } from './environment/createBrowserEnvironmentReader';
 import { createServerEnvironmentReader } from './environment/createServerEnvironmentReader';
 import { computeLayout } from './engine/computeLayout';
-import type { EngineConfig, LayoutTokens } from './engine/types';
+import type { LayoutTokens } from './engine/types';
+import { resolveFluidaConfig } from './resolveFluidaConfig';
 
 const SERVER_SNAPSHOT: FluidaSnapshot = {
   width: 0,
@@ -17,14 +18,6 @@ const SERVER_SNAPSHOT: FluidaSnapshot = {
 };
 
 const NOOP = (): void => {};
-
-function toEngineConfig(config: FluidaConfig): EngineConfig {
-  return {
-    breakpoints: config.breakpoints,
-    spacing: config.spacing,
-    typography: config.typography,
-  };
-}
 
 function areSnapshotsEqual(previous: FluidaSnapshot, next: FluidaSnapshot): boolean {
   return (
@@ -51,7 +44,7 @@ export function createFluida(config: FluidaConfig = {}): FluidaInstance {
     ? createBrowserEnvironmentReader()
     : createServerEnvironmentReader();
 
-  const engineConfig = toEngineConfig(config);
+  const engineConfig = resolveFluidaConfig(config);
 
   let currentSnapshot = reader.readEnvironment();
   let currentLayout = computeLayout(currentSnapshot.width, engineConfig);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createFluida } from './createFluida';
+import { FluidaConfigError } from './resolveFluidaConfig';
 
 // Runs under Vitest's default Node environment, where `window` doesn't
 // exist — createFluida() always resolves to the server EnvironmentReader
@@ -8,6 +9,21 @@ import { createFluida } from './createFluida';
 // left for a later browser integration test suite.
 
 describe('createFluida (server/Node mode)', () => {
+  it('throws FluidaConfigError synchronously for invalid config, before any layout is computed', () => {
+    expect(() => createFluida({ breakpoints: {} as never })).toThrow(
+      FluidaConfigError,
+    );
+  });
+
+  it('does not throw for a valid, fully custom config', () => {
+    expect(() =>
+      createFluida({
+        breakpoints: { mobile: 0, tablet: 600, desktop: 900 },
+        spacing: { minimumPadding: 4, maximumPadding: 8 },
+      }),
+    ).not.toThrow();
+  });
+
   it('returns the server fallback snapshot', () => {
     const instance = createFluida();
     expect(instance.getSnapshot()).toEqual({
@@ -83,15 +99,18 @@ describe('createFluida (server/Node mode)', () => {
   });
 
   it('subscribe() after destroy() does not throw and returns a no-op', () => {
-    const instance = createFluida();
+        const instance = createFluida();
     instance.destroy();
+
     const unsubscribe = instance.subscribe(() => {});
+
     expect(typeof unsubscribe).toBe('function');
     expect(() => unsubscribe()).not.toThrow();
   });
 
   it('destroy() is idempotent', () => {
     const instance = createFluida();
+
     expect(() => {
       instance.destroy();
       instance.destroy();
@@ -100,7 +119,9 @@ describe('createFluida (server/Node mode)', () => {
 
   it('getSnapshot() and getLayout() keep working after destroy()', () => {
     const instance = createFluida();
+
     instance.destroy();
+
     expect(() => instance.getSnapshot()).not.toThrow();
     expect(() => instance.getLayout()).not.toThrow();
     expect(instance.getLayout().breakpoint).toBe('mobile');

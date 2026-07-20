@@ -3,6 +3,15 @@ export type { FluidaProviderProps } from './FluidaProvider';
 
 export { FluidaReactError } from './FluidaContext';
 
+export { FluidaContainer } from './FluidaContainer';
+export type { FluidaContainerProps } from './FluidaContainer';
+
+export { FluidaGrid } from './FluidaGrid';
+export type { FluidaGridProps } from './FluidaGrid';
+
+export { FluidaStack } from './FluidaStack';
+export type { FluidaStackProps } from './FluidaStack';
+
 export { useFluidaSnapshot } from './useFluidaSnapshot';
 export { useFluidaLayout } from './useFluidaLayout';
 

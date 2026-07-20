@@ -1,0 +1,88 @@
+:root {
+  color-scheme: light;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f5f5f7;
+  color: #1a1a1a;
+}
+
+/*
+ * Note what's NOT here: no max-width, no centering, no page padding,
+ * no grid-template-columns, no panel-row layout. Those all come from
+ * <FluidaContainer>, <FluidaStack>, and <FluidaGrid> automatically —
+ * this file only styles what Fluida doesn't compute (colors, borders,
+ * card look, the small render-count badge).
+ */
+
+header h1 {
+  margin-bottom: 4px;
+}
+
+header p {
+  color: #555;
+  max-width: 60ch;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px 20px;
+  flex: 1 1 320px;
+  margin-top: 16px;
+}
+
+.panel h2 {
+  font-size: 1rem;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count {
+  font-size: 0.75rem;
+  font-weight: normal;
+  background: #eef1ff;
+  color: #3b4ccf;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+dt {
+  color: #777;
+}
+
+dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.grid {
+  transition: grid-template-columns 0.15s ease;
+}
+
+.cell {
+  background: #3b4ccf;
+  color: #ffffff;
+  border-radius: 6px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}

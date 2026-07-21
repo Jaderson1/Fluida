@@ -1,3 +1,9 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
   color-scheme: light;
   font-family:
@@ -7,27 +13,46 @@
     sans-serif;
 }
 
+html,
 body {
   margin: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
   background: #f5f5f7;
   color: #1a1a1a;
 }
 
-/*
- * Note what's NOT here: no max-width, no centering, no page padding,
- * no grid-template-columns, no panel-row layout. Those all come from
- * <FluidaContainer>, <FluidaStack>, and <FluidaGrid> automatically —
- * this file only styles what Fluida doesn't compute (colors, borders,
- * card look, the small render-count badge).
- */
-
-header h1 {
-  margin-bottom: 4px;
+.breakpoint-banner {
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 header p {
   color: #555;
   max-width: 60ch;
+}
+
+.viewport-note {
+  font-size: 0.85rem;
+  background: #fff8e6;
+  border: 1px solid #f0d78c;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.viewport-note code {
+  background: #efefef;
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 
 .panel {
@@ -37,6 +62,7 @@ header p {
   padding: 16px 20px;
   flex: 1 1 320px;
   margin-top: 16px;
+  min-width: 0;
 }
 
 .panel h2 {
@@ -70,6 +96,7 @@ dt {
 dd {
   margin: 0;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .grid {
@@ -85,4 +112,6 @@ dd {
   align-items: center;
   justify-content: center;
   font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

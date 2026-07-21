@@ -12,6 +12,9 @@ export type { FluidaGridProps } from './FluidaGrid';
 export { FluidaStack } from './FluidaStack';
 export type { FluidaStackProps } from './FluidaStack';
 
+export { FluidaText } from './FluidaText';
+export type { FluidaTextElement, FluidaTextProps } from './FluidaText';
+
 export { useFluidaSnapshot } from './useFluidaSnapshot';
 export { useFluidaLayout } from './useFluidaLayout';
 

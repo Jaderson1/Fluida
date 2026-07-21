@@ -37,6 +37,28 @@ function fireResize(): void {
   window.dispatchEvent(new Event('resize'));
 }
 
+function fireOrientationChange(): void {
+  window.dispatchEvent(new Event('orientationchange'));
+}
+
+function installVisualViewportMock(): EventTarget {
+  const mock = new EventTarget();
+
+  Object.defineProperty(window, 'visualViewport', {
+    configurable: true,
+    value: mock,
+  });
+
+  return mock;
+}
+
+function removeVisualViewportMock(): void {
+  Object.defineProperty(window, 'visualViewport', {
+    configurable: true,
+    value: undefined,
+  });
+}
+
 let instance: FluidaInstance | undefined;
 
 beforeEach(() => {
@@ -46,6 +68,9 @@ beforeEach(() => {
 afterEach(() => {
   instance?.destroy();
   instance = undefined;
+
+  removeVisualViewportMock();
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -237,5 +262,170 @@ describe('createFluida (browser mode)', () => {
       'resize',
       expect.any(Function),
     );
+  });
+
+  it('updates the snapshot from a visualViewport resize event, independent of window resize', () => {
+    const mockViewport = installVisualViewportMock();
+
+    instance = createFluida();
+    instance.subscribe(() => {});
+
+    const before = instance.getSnapshot();
+
+    setViewport(390, 800, 1);
+    mockViewport.dispatchEvent(new Event('resize'));
+
+    expect(instance.getSnapshot()).not.toBe(before);
+    expect(instance.getSnapshot().width).toBe(390);
+  });
+
+  it('updates the snapshot from an orientationchange event', () => {
+    instance = createFluida();
+    instance.subscribe(() => {});
+
+    const before = instance.getSnapshot();
+
+    setViewport(768, 1024, 1);
+    fireOrientationChange();
+
+    expect(instance.getSnapshot()).not.toBe(before);
+    expect(instance.getSnapshot().width).toBe(768);
+  });
+
+  it('does not attach to visualViewport when it is unavailable', () => {
+    expect(window.visualViewport).toBeUndefined();
+
+    expect(() => {
+      instance = createFluida();
+      instance.subscribe(() => {});
+    }).not.toThrow();
+  });
+
+  it('notifies once for one underlying change, even when resize, visualViewport resize, and orientationchange all fire for it', () => {
+    const mockViewport = installVisualViewportMock();
+
+    instance = createFluida();
+
+    const listener = vi.fn();
+    instance.subscribe(listener);
+
+    setViewport(1200, 800, 1);
+
+    fireResize();
+    mockViewport.dispatchEvent(new Event('resize'));
+    fireOrientationChange();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not notify when an event fires but nothing in the environment actually changed', () => {
+    const mockViewport = installVisualViewportMock();
+
+    instance = createFluida();
+
+    const listener = vi.fn();
+    instance.subscribe(listener);
+
+    fireResize();
+    mockViewport.dispatchEvent(new Event('resize'));
+    fireOrientationChange();
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('destroy() removes the resize, orientationchange, and visualViewport listeners', () => {
+    const mockViewport = installVisualViewportMock();
+
+    const windowRemoveSpy = vi.spyOn(window, 'removeEventListener');
+    const viewportRemoveSpy = vi.spyOn(
+      mockViewport,
+      'removeEventListener',
+    );
+
+    instance = createFluida();
+    instance.subscribe(() => {});
+
+    instance.destroy();
+
+    expect(windowRemoveSpy).toHaveBeenCalledWith(
+      'resize',
+      expect.any(Function),
+    );
+
+    expect(windowRemoveSpy).toHaveBeenCalledWith(
+      'orientationchange',
+      expect.any(Function),
+    );
+
+    expect(viewportRemoveSpy).toHaveBeenCalledWith(
+      'resize',
+      expect.any(Function),
+    );
+  });
+
+  it('after destroy(), none of the three signals updates the store any further', () => {
+    const mockViewport = installVisualViewportMock();
+
+    instance = createFluida();
+    instance.subscribe(() => {});
+
+    instance.destroy();
+
+    const afterDestroy = instance.getSnapshot();
+
+    setViewport(1536, 900, 1);
+
+    fireResize();
+    mockViewport.dispatchEvent(new Event('resize'));
+    fireOrientationChange();
+
+    expect(instance.getSnapshot()).toBe(afterDestroy);
+  });
+
+  it('catches drift between construction and the first subscriber with a single deferred re-read', async () => {
+    vi.useFakeTimers();
+
+    instance = createFluida();
+
+    const constructionTimeSnapshot = instance.getSnapshot();
+
+    setViewport(414, 800, 1);
+
+    instance.subscribe(() => {});
+
+    expect(instance.getSnapshot()).toBe(
+      constructionTimeSnapshot,
+    );
+
+    await vi.runAllTimersAsync();
+
+    expect(instance.getSnapshot()).not.toBe(
+      constructionTimeSnapshot,
+    );
+
+    expect(instance.getSnapshot().width).toBe(414);
+  });
+
+  it('the deferred re-read runs only once, not on every subscribe() call', async () => {
+    vi.useFakeTimers();
+
+    const setTimeoutSpy = vi.spyOn(
+      globalThis,
+      'setTimeout',
+    );
+
+    instance = createFluida();
+
+    instance.subscribe(() => {});
+    instance.subscribe(() => {});
+    instance.subscribe(() => {});
+
+    await vi.runAllTimersAsync();
+
+    const deferredReadCalls = setTimeoutSpy.mock.calls.filter(
+      (call) => call[1] === 0,
+    );
+
+    expect(deferredReadCalls).toHaveLength(1);
   });
 });

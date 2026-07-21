@@ -54,6 +54,7 @@ export function createFluida(config: FluidaConfig = {}): FluidaInstance {
 
   let isDestroyed = false;
   let isListening = false;
+  let deferredReadTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   const listeners = new Set<() => void>();
 
@@ -85,6 +86,41 @@ export function createFluida(config: FluidaConfig = {}): FluidaInstance {
     notifyListeners();
   }
 
+  // Three independent signals, all routed through the same
+  // updateSnapshot — dedup is inherited for free from its existing
+  // areSnapshotsEqual check, whichever signal (or several at once)
+  // fires for the same underlying change.
+  //
+  // - resize: the normal case, and the only one that fired before.
+  // - visualViewport.resize: tracks the visual viewport separately
+  //   from the layout viewport (pinch-zoom, on-screen keyboards, and
+  //   in practice some DevTools device-emulation transitions that
+  //   don't reliably dispatch a plain window resize event on a page
+  //   that was already loaded before emulation was toggled).
+  // - orientationchange: a distinct signal on devices/emulators that
+  //   fire it independently of resize.
+  //
+  // None of this can guarantee correctness if a browser dispatches
+  // none of these three for a given change — that would need polling,
+  // which is deliberately out of scope here.
+  function attachListeners(): void {
+    window.addEventListener('resize', updateSnapshot);
+    window.addEventListener('orientationchange', updateSnapshot);
+
+    if (typeof window.visualViewport !== 'undefined' && window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateSnapshot);
+    }
+  }
+
+  function detachListeners(): void {
+    window.removeEventListener('resize', updateSnapshot);
+    window.removeEventListener('orientationchange', updateSnapshot);
+
+    if (typeof window.visualViewport !== 'undefined' && window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', updateSnapshot);
+    }
+  }
+
   return {
     getSnapshot() {
       return currentSnapshot;
@@ -102,8 +138,17 @@ export function createFluida(config: FluidaConfig = {}): FluidaInstance {
       if (isDestroyed) return NOOP;
 
       if (!isListening && isBrowser) {
-        window.addEventListener('resize', updateSnapshot);
+        attachListeners();
         isListening = true;
+
+        // A single deferred check, not a recurring poll: catches
+        // drift between the eager read at construction and this
+        // first real subscriber — for example, if the environment
+        // changed in a way that dispatched none of the three events
+        // above before anything was listening yet. Runs once, here,
+        // and never again; every later change is caught by the
+        // listeners themselves.
+        deferredReadTimeoutId = setTimeout(updateSnapshot, 0);
       }
 
       const subscription = () => listener();
@@ -114,8 +159,13 @@ export function createFluida(config: FluidaConfig = {}): FluidaInstance {
       if (isDestroyed) return;
       isDestroyed = true;
 
+      if (deferredReadTimeoutId !== null) {
+        clearTimeout(deferredReadTimeoutId);
+        deferredReadTimeoutId = null;
+      }
+
       if (isListening && isBrowser) {
-        window.removeEventListener('resize', updateSnapshot);
+        detachListeners();
         isListening = false;
       }
       listeners.clear();

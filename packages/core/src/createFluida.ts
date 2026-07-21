@@ -73,8 +73,16 @@ export function createFluida(config: FluidaConfig = {}): FluidaInstance {
   function updateSnapshot(): void {
     if (isDestroyed) return;
 
-    const nextSnapshot = reader.readEnvironment();
-    if (areSnapshotsEqual(currentSnapshot, nextSnapshot)) return;
+const nextSnapshot = reader.readEnvironment();
+
+console.log('[Fluida debug]', {
+  nextSnapshot,
+  innerWidth: window.innerWidth,
+  visualViewportWidth: window.visualViewport?.width,
+  clientWidth: document.documentElement.clientWidth,
+});
+
+if (areSnapshotsEqual(currentSnapshot, nextSnapshot)) return;
 
     currentSnapshot = nextSnapshot;
 

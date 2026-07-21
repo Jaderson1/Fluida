@@ -46,7 +46,18 @@ header p {
   background: #fff8e6;
   border: 1px solid #f0d78c;
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 8px 12px;
+}
+
+.viewport-note summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #7a5c00;
+}
+
+.viewport-note p {
+  margin: 8px 0 0;
+  max-width: 60ch;
 }
 
 .viewport-note code {
@@ -114,4 +125,50 @@ dd {
   font-weight: 600;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/*
+ * Compact presentation mode: wide-but-limited-height viewports (TV
+ * and desktop displays around 1280x720 up through 1920x1080) get a
+ * denser layout so the whole demo fits on one screen without
+ * scrolling. Deliberately scoped to min-width so it never applies to
+ * phones — a tall, narrow viewport keeps the normal spacing and
+ * normal document scrolling, which is the correct behavior there,
+ * not something this rule should touch.
+ */
+@media (min-width: 900px) and (max-height: 1080px) {
+  .breakpoint-banner {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+
+  header h1 {
+    margin: 0 0 4px;
+  }
+
+  header p {
+    margin: 0 0 6px;
+  }
+
+  .viewport-note {
+    margin-bottom: 8px;
+    padding: 6px 10px;
+  }
+
+  .panel {
+    padding: 10px 14px;
+    margin-top: 10px;
+  }
+
+  .panel h2 {
+    margin-bottom: 6px;
+  }
+
+  dl {
+    gap: 2px 12px;
+  }
+
+  .cell {
+    max-height: 44px;
+  }
 }

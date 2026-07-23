@@ -63,3 +63,29 @@ export interface EngineConfig {
   readonly typography?: TypographyConfig;
   readonly container?: ContainerConfig;
 }
+
+/**
+ * Container-based layout — a separate, standalone computation from
+ * everything above. Where LayoutTokens is derived from the viewport
+ * alone, ContainerLayoutResult is derived from a container's actual
+ * measured size and a known item count, supplied by the caller.
+ * Nothing here reads breakpoints, spacing, or any viewport state.
+ */
+export type ContainerLayoutStrategy = 'fit' | 'fill' | 'balanced' | 'preserve-ratio';
+
+export interface ContainerLayoutOptions {
+  readonly itemCount: number;
+  /** Defaults to 'fit'. */
+  readonly strategy?: ContainerLayoutStrategy;
+  /** Defaults to 16. */
+  readonly gap?: number;
+  /** width / height. Only used by the 'preserve-ratio' strategy. Defaults to 1. */
+  readonly aspectRatio?: number;
+}
+
+export interface ContainerLayoutResult {
+  readonly columns: number;
+  readonly rows: number;
+  readonly cellWidth: number;
+  readonly cellHeight: number;
+}

@@ -1,10 +1,16 @@
 import {
+  FluidaAdaptiveGrid,
   FluidaContainer,
   FluidaGrid,
   FluidaProvider,
   FluidaStack,
   FluidaText,
 } from '@fluida/react';
+
+import {
+  BarChartPlaceholder,
+  LineChartPlaceholder,
+} from './ChartPlaceholder';
 
 import { BreakpointBanner } from './BreakpointBanner';
 import { LayoutPanel } from './LayoutPanel';
@@ -26,17 +32,16 @@ export function App() {
             heading all react automatically. Card colors and borders
             are ordinary CSS; Fluida only drives the layout values.
           </p>
+
           <details className="viewport-note">
             <summary>How this reacts to viewport changes</summary>
             <p>
-              Fluida reacts to the browser's own viewport width, not to
-              any individual element's size — there's no CSS container
-              query or <code>ResizeObserver</code> here yet. It listens
-              for <code>resize</code>, <code>visualViewport</code>{' '}
-              resize, and <code>orientationchange</code> events; in the
-              rare case none of those fire for a change you make (some
-              DevTools device-emulation transitions), reloading the
-              page forces a fresh read.
+              Fluida reacts to the browser&apos;s own viewport width, not to
+              any individual element&apos;s size. The components above listen
+              for <code>resize</code>, <code>visualViewport</code> resize and{' '}
+              <code>orientationchange</code>. The adaptive grid below is
+              different: it measures its own container with{' '}
+              <code>ResizeObserver</code>.
             </p>
           </details>
         </header>
@@ -48,6 +53,7 @@ export function App() {
 
         <section className="panel">
           <h2>&lt;FluidaGrid&gt; — column count from Core, automatically</h2>
+
           <FluidaGrid className="grid">
             {cells.map((cellNumber) => (
               <div key={cellNumber} className="cell">
@@ -55,6 +61,32 @@ export function App() {
               </div>
             ))}
           </FluidaGrid>
+        </section>
+
+        <section className="panel adaptive-panel">
+          <h2>
+            &lt;FluidaAdaptiveGrid&gt; — measures its real container, not the
+            viewport
+          </h2>
+
+          <p className="adaptive-note">
+            These two charts are laid out by <code>FluidaAdaptiveGrid</code>,
+            which measures this panel&apos;s own size with{' '}
+            <code>ResizeObserver</code> and uses the{' '}
+            <code>preserve-ratio</code> strategy to keep each chart at a 16:9
+            shape.
+          </p>
+
+          <FluidaAdaptiveGrid
+            itemCount={2}
+            strategy="preserve-ratio"
+            aspectRatio={16 / 9}
+            gap={16}
+            className="adaptive-grid"
+          >
+            <BarChartPlaceholder />
+            <LineChartPlaceholder />
+          </FluidaAdaptiveGrid>
         </section>
       </FluidaContainer>
     </FluidaProvider>

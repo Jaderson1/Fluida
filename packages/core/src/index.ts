@@ -1,5 +1,6 @@
 export { createFluida } from './createFluida';
 export { FluidaConfigError } from './resolveFluidaConfig';
+export { computeContainerLayout } from './engine/computeContainerLayout';
 
 export type {
   FluidaConfig,
@@ -13,6 +14,9 @@ export type {
   Breakpoints,
   ContainerConfig,
   ContainerLayout,
+  ContainerLayoutOptions,
+  ContainerLayoutResult,
+  ContainerLayoutStrategy,
   ContainerTier,
   GridLayout,
   LayoutTokens,

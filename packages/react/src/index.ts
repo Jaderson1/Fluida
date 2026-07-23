@@ -15,10 +15,21 @@ export type { FluidaStackProps } from './FluidaStack';
 export { FluidaText } from './FluidaText';
 export type { FluidaTextElement, FluidaTextProps } from './FluidaText';
 
+export { FluidaAdaptiveGrid } from './FluidaAdaptiveGrid';
+export type { FluidaAdaptiveGridProps } from './FluidaAdaptiveGrid';
+
+export { useFluidaContainerSize } from './useFluidaContainerSize';
+export type { ContainerSize } from './useFluidaContainerSize';
+
+export { useFluidaContainerLayout } from './useFluidaContainerLayout';
+
 export { useFluidaSnapshot } from './useFluidaSnapshot';
 export { useFluidaLayout } from './useFluidaLayout';
 
 export type {
+  ContainerLayoutOptions,
+  ContainerLayoutResult,
+  ContainerLayoutStrategy,
   FluidaConfig,
   FluidaSnapshot,
   LayoutTokens,

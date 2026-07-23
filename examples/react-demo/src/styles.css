@@ -171,4 +171,52 @@ dd {
   .cell {
     max-height: 44px;
   }
+  
+}
+.adaptive-note {
+  font-size: 0.85rem;
+  color: #555;
+  max-width: 60ch;
+}
+
+.adaptive-grid {
+  min-height: 220px;
+}
+
+.chart-placeholder {
+  background: #f8f9ff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chart-label {
+  font-size: 0.75rem;
+  color: #777;
+  font-weight: 600;
+}
+
+.bar-chart {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.bar-chart-bar {
+  flex: 1;
+  background: #3b4ccf;
+  border-radius: 3px 3px 0 0;
+  min-height: 4px;
+}
+
+.line-chart {
+  flex: 1;
+  width: 100%;
+  color: #2e933c;
 }

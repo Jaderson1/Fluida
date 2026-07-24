@@ -1,6 +1,6 @@
 {
   "name": "@fluida/core",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Framework-agnostic engine that computes responsive layout decisions from a viewport, and container-based layout from a real measured element — no runtime dependencies, no UI framework required.",
   "license": "MIT",
   "type": "module",

@@ -1,9 +1,29 @@
 {
   "name": "@fluida/core",
   "version": "0.0.1",
-  "description": "Framework-agnostic engine for automatic responsive layouts",
+  "description": "Framework-agnostic engine that computes responsive layout decisions from a viewport, and container-based layout from a real measured element — no runtime dependencies, no UI framework required.",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jaderson1/Fluida.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/Jaderson1/Fluida/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/Jaderson1/Fluida/issues"
+  },
+  "keywords": [
+    "responsive",
+    "layout",
+    "breakpoints",
+    "container-queries",
+    "resize-observer",
+    "framework-agnostic"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -20,7 +40,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "sideEffects": false,
   "scripts": {

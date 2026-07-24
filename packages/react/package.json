@@ -1,9 +1,30 @@
 {
   "name": "@fluida/react",
   "version": "0.0.1",
-  "description": "React adapter for Fluida — a Provider and hooks for automatic responsive layouts",
+  "description": "React adapter for Fluida — a Provider, viewport-based layout primitives, and a container-measuring FluidaAdaptiveGrid, all built on @fluida/core.",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jaderson1/Fluida.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/Jaderson1/Fluida/tree/main/packages/react#readme",
+  "bugs": {
+    "url": "https://github.com/Jaderson1/Fluida/issues"
+  },
+  "keywords": [
+    "react",
+    "responsive",
+    "layout",
+    "breakpoints",
+    "container-queries",
+    "resize-observer",
+    "hooks"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -19,7 +40,10 @@
       }
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
   "sideEffects": false,
   "peerDependencies": {
     "react": ">=18.0.0",

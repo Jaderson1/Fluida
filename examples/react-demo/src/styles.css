@@ -171,7 +171,7 @@ dd {
   .cell {
     max-height: 44px;
   }
-  
+
 }
 .adaptive-note {
   font-size: 0.85rem;
@@ -219,4 +219,48 @@ dd {
   flex: 1;
   width: 100%;
   color: #2e933c;
+}
+
+/*
+ * Dashboard mode: wide AND tall enough to be worth a genuinely
+ * different composition, not just a smaller version of the compact
+ * one above. 1280x720, 1366x768, and 1920x1080 all match this — so
+ * does a large ordinary desktop monitor at 1920x1080, and that's
+ * fine: there is no way to tell "a TV" apart from "a big monitor"
+ * using only viewport dimensions, and no need to — both benefit from
+ * using more of the width and height they actually have instead of a
+ * layout tuned for the tightest case in a much broader range.
+ * min-height stops this matching typical laptop screens that are
+ * wide but still short enough to need the tighter compact treatment
+ * above. The container's own max-width comes from this demo's config
+ * in App.tsx (two extra tiers past Core's default 1320px cap), not
+ * from anything here.
+ */
+@media (min-width: 1200px) and (min-height: 650px) {
+  .dashboard-shell {
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    /* A floor, not a forced height: real content taller than this
+       still grows the grid and scrolls normally — min-height never
+       clips or hides anything. */
+    min-height: 100dvh;
+  }
+
+  .panels-row {
+    margin-top: 0;
+  }
+
+  .grid-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-top: 0;
+  }
+
+  .cell {
+    /* Scales with viewport height between a floor close to the
+       compact-mode value and a ceiling that keeps cells from
+       becoming disproportionately large on very tall displays. */
+    max-height: clamp(48px, 6dvh, 96px);
+  }
 }

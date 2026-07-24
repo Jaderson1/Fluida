@@ -1,6 +1,6 @@
 {
   "name": "@fluida/react",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "React adapter for Fluida — a Provider, viewport-based layout primitives, and a container-measuring FluidaAdaptiveGrid, all built on @fluida/core.",
   "license": "MIT",
   "type": "module",

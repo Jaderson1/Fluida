@@ -1,28 +1,26 @@
 # @fluida/core
 
-The framework-agnostic engine behind Fluida. Reads a viewport's environment and computes a small set of layout decisions as one reactive object — no UI framework, no DOM rendering, no dependencies.
+The framework-agnostic engine behind Fluida. Computes layout decisions from either a viewport or a real measured container — no DOM rendering, no UI framework dependency, no runtime dependencies at all.
 
-**Status: pre-release.** Not published to npm yet.
+**Status:** pre-release, `0.0.1`. Not published to npm yet.
 
-## Responsibility
+## What this package is
 
-`@fluida/core` owns exactly one thing: turning a viewport's environment (width, height, orientation, pixel ratio) into a small, deterministic set of layout decisions (`LayoutTokens`), reactively. It does not render anything, does not touch the DOM beyond reading `window`/`document` for the environment itself, and does not know any UI framework exists.
+`@fluida/core` owns exactly one thing: turning either a viewport's environment, or a container's real measured size plus an item count, into a small, deterministic set of layout values. It does not render anything and does not require React, or any other framework — verified directly in this package's own `package.json`, which declares no runtime dependencies, and in its source, which contains no framework import of any kind.
 
-## Independence from React
-
-Verified directly, not assumed: this package's `package.json` declares zero runtime dependencies, and no file under `src/` imports React or any other framework. `@fluida/react` depends on this package through its ordinary public API; this package has never changed shape to accommodate it.
+It is written for the browser (its viewport-reading logic uses `window`, `window.visualViewport`, and `resize`/`orientationchange` events) but works safely in Node/SSR contexts too — see [Server-side rendering](#server-side-rendering) below.
 
 ## Installation
 
-Not available on npm yet. Within this monorepo:
+Not available on npm yet.
 
 ```json
 { "dependencies": { "@fluida/core": "workspace:*" } }
 ```
 
-## `createFluida(config?: FluidaConfig): FluidaInstance`
+## Viewport-based layout
 
-Creates one independent instance. Reads the environment immediately and synchronously — nothing is deferred — and computes the initial layout. Throws `FluidaConfigError` synchronously if `config` is invalid.
+### `createFluida(config?: FluidaConfig): FluidaInstance`
 
 ```ts
 import { createFluida } from '@fluida/core';
@@ -41,7 +39,9 @@ console.log(fluida.getLayout());
 fluida.destroy();
 ```
 
-## `FluidaInstance`
+Reads the environment immediately and synchronously — nothing is deferred. Throws `FluidaConfigError` synchronously if `config` is invalid.
+
+### `FluidaInstance`
 
 ```ts
 interface FluidaInstance {
@@ -54,51 +54,14 @@ interface FluidaInstance {
 }
 ```
 
-### `getSnapshot()`
+- **`getSnapshot()`** — the raw environment reading: `{ width, height, orientation, pixelRatio }`.
+- **`getLayout()`** — everything derived from it: `{ breakpoint, grid, spacing, typography, container }`.
+- Both return the same object reference across calls when nothing relevant changed, and update independently of each other.
+- **`getServerSnapshot()` / `getServerLayout()`** — a fixed fallback (`width: 0`, `orientation: 'portrait'`, `pixelRatio: 1`, and whatever layout that width resolves to), the same on every call, in any environment.
+- **`subscribe(listener)`** — registers `listener` for snapshot/layout changes; returns an unsubscribe function. Listeners attach lazily, only on the first real call.
+- **`destroy()`** — removes all listeners and clears all subscribers. Safe to call more than once.
 
-The raw environment reading: `{ width, height, orientation, pixelRatio }`.
-
-### `getLayout()`
-
-Everything derived from the snapshot: `{ breakpoint, grid, spacing, typography, container }`.
-
-### Reference stability
-
-`getSnapshot()` and `getLayout()` each return the exact same object reference across repeated calls, as long as nothing relevant changed since the last read — and they update independently of each other. An environment change that doesn't affect any layout-relevant value (today, that's `pixelRatio` specifically, since nothing in the Engine reads it) updates only `getSnapshot()`'s reference, leaving `getLayout()`'s untouched. This matters for anything (React's `useSyncExternalStore` included) that decides whether to re-render by comparing references rather than deep-equality.
-
-### `subscribe(listener)`
-
-Registers `listener` to be called whenever the snapshot or layout changes; returns an unsubscribe function. Listeners are attached lazily — only on the first real `subscribe()` call. An instance that's created but never subscribed to costs nothing beyond the initial synchronous read.
-
-### `destroy()`
-
-Removes all environment listeners and clears all subscribers. Safe to call more than once; every getter keeps returning its last known value even after `destroy()`.
-
-## Browser events
-
-In a browser, an instance listens for three independent signals, all routed through the same internal update path:
-
-- **`resize`** — the ordinary case.
-- **`visualViewport`'s own `resize` event** — tracks the visual viewport separately from the layout viewport; in practice, also catches some DevTools device-emulation transitions that don't reliably dispatch a plain `resize` on a page already loaded before emulation was toggled.
-- **`orientationchange`** — a distinct signal some devices and emulators fire independently of `resize`.
-
-Plus one deferred, single-shot re-read scheduled right after the first `subscribe()` call, to catch drift between the instance's construction-time read and that first subscription. This is event-driven, not polling — it cannot guarantee catching every conceivable browser or DevTools scenario, only ones that dispatch at least one of the three events above.
-
-## `FluidaConfigError`
-
-```ts
-import { createFluida, FluidaConfigError } from '@fluida/core';
-
-try {
-  createFluida({ breakpoints: {} });
-} catch (error) {
-  if (error instanceof FluidaConfigError) {
-    console.error(error.message);
-  }
-}
-```
-
-## Configuration and validation
+### Configuration
 
 ```ts
 interface FluidaConfig {
@@ -121,25 +84,88 @@ interface FluidaConfig {
 }
 ```
 
-Every field is optional. `breakpoints` drives both `breakpoint` and `grid.columns`. `spacing` and `typography` interpolate linearly between their minimum and maximum across the given width range, clamped flat outside it. `container.tiers` is a set of discrete steps, each a fixed `containerMaxWidth` past its own `minimumWidth`, with thresholds independent from `breakpoints` by design.
+Every field is optional. `breakpoints` drives both `breakpoint` and `grid.columns`. `spacing` and `typography` interpolate linearly between a minimum and maximum across a width range, clamped flat outside it. `container.tiers` is a set of discrete steps, with thresholds independent from `breakpoints` by design.
 
-Validation happens synchronously inside `createFluida()`, once, before any layout is computed. It rejects: empty breakpoints or container tiers, non-finite or negative values where a real size is expected, and duplicate thresholds that would make classification ambiguous. Nothing is validated lazily or on a later call.
+### `FluidaConfigError`
+
+```ts
+import { createFluida, FluidaConfigError } from '@fluida/core';
+
+try {
+  createFluida({ breakpoints: {} });
+} catch (error) {
+  if (error instanceof FluidaConfigError) {
+    console.error(error.message);
+  }
+}
+```
+
+Thrown synchronously for invalid configuration: empty breakpoints or container tiers, non-finite or negative values where a real size is expected, or duplicate thresholds.
+
+## Container-based layout
+
+### `computeContainerLayout(containerWidth, containerHeight, options): ContainerLayoutResult`
+
+A separate, standalone pure function — not tied to `createFluida()` or any instance. Given a container's real measured size and a known item count, computes the column/row count and cell size.
+
+```ts
+import { computeContainerLayout } from '@fluida/core';
+
+computeContainerLayout(800, 600, { itemCount: 8 });
+// { columns: 3, rows: 3, cellWidth: 189.33..., cellHeight: 189.33... }
+```
+
+```ts
+interface ContainerLayoutOptions {
+  itemCount: number;
+  strategy?: 'fit' | 'fill' | 'balanced' | 'preserve-ratio'; // default 'fit'
+  gap?: number;         // default 16
+  aspectRatio?: number; // width / height; only used by 'preserve-ratio'; default 1
+}
+
+interface ContainerLayoutResult {
+  columns: number;
+  rows: number;
+  cellWidth: number;
+  cellHeight: number;
+}
+```
+
+**Parameters.** `containerWidth`/`containerHeight` are the real measured dimensions of the container, in the same units your consumer measures in (pixels, for the React adapter). `itemCount` is required; the other three fields are optional.
+
+**Return value.** `columns`/`rows` describe the grid shape; `cellWidth`/`cellHeight` are the computed size for each cell.
+
+**Algorithm.** A search across every possible column count (1 through `itemCount`) finds the one that fills the given width and height exactly, with the least-distorted (closest to square) resulting cell. Each strategy then applies a different rule on top of that same chosen column count:
+
+- **`fit`** (default) — forces a square cell, sized to the smaller of the fill answer's width and height. Fits without overflow; may leave space in one axis.
+- **`fill`** — uses the fill answer exactly, in both axes. Uses 100% of the space; the cell may not be square.
+- **`balanced`** — a square cell sized to the geometric mean of the fill answer's width and height — less stretched than `fill`, less conservative than `fit`.
+- **`preserve-ratio`** — forces the cell to the configured `aspectRatio` exactly, even if that leaves leftover space.
+
+**Container not yet measured, or too small to fit anything.** If `containerWidth`/`containerHeight` are `0` (or no column count produces a positive cell size at all — for example, gaps alone exceeding the available space), the function returns `{ columns: 1, rows: itemCount, cellWidth: 0, cellHeight: 0 }` — a real, valid result rather than `null` or an exception.
+
+**Errors.** Throws `FluidaConfigError` for `itemCount < 1`, a negative `gap`, or a non-positive `aspectRatio`.
 
 ## Server-side rendering
 
-`typeof window !== 'undefined'` decides which environment reader is used — nothing to configure. The server reader never touches `window` or `document` and always returns the same fixed snapshot (`width: 0`, `height: 0`, `orientation: 'portrait'`, `pixelRatio: 1`).
+`typeof window !== 'undefined'` decides which environment reader `createFluida()` uses — nothing to configure. The server reader never touches `window` or `document`. `computeContainerLayout` has no browser dependency at all; calling it with `(0, 0, options)` — the natural "not measured" case on a server — returns the same valid fallback described above.
 
-## Public types
+## Compatibility
 
-`FluidaConfig`, `FluidaInstance`, `FluidaOrientation`, `FluidaSnapshot`, `Breakpoint`, `Breakpoints`, `ContainerConfig`, `ContainerLayout`, `ContainerTier`, `GridLayout`, `LayoutTokens`, `SpacingConfig`, `SpacingLayout`, `TypographyConfig`, `TypographyLayout` — all exported from `@fluida/core`, confirmed directly against `src/index.ts`.
+Published as both ESM and CommonJS from a single build:
 
-## Limitations
+```json
+"main": "./dist/index.cjs",
+"module": "./dist/index.js",
+"types": "./dist/index.d.ts"
+```
 
-- `orientation`, `height`, and `pixelRatio` are captured in every snapshot but don't influence any layout decision today.
-- Breakpoint names are a fixed set (`mobile` / `tablet` / `desktop`).
-- No selector-based subscription — every subscriber is notified on any change to snapshot or layout, whichever changed.
-- Event-driven reactivity, not polling — see [Browser events](#browser-events) above for exactly what that does and doesn't guarantee.
+No runtime dependencies. `sideEffects: false`.
 
-## Roadmap: container measurement
+## Building an adapter for another framework
 
-Planned, not implemented: measuring the real space available *inside* a container (via `ResizeObserver`) rather than deriving everything from viewport width alone, to compute the best distribution of a container's own elements while preserving a planned composition and avoiding excessive leftover space. This is intended to live here, in `@fluida/core`, specifically so React, Dash, and any future adapter can reuse the same computation identically — the same relationship viewport-based layout already has with `@fluida/react` today. No code for this exists yet.
+Nothing in this package is React-specific. An adapter for a different framework needs only: a way to call `subscribe()` and re-render/re-emit on notification, a way to read `getSnapshot()`/`getLayout()` (or their server-mode counterparts), and, for container-based layout, its own way of measuring a real element's size before calling `computeContainerLayout()` with the result. See [`@fluida/react`](../react/README.md) for a concrete implementation of that shape.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).

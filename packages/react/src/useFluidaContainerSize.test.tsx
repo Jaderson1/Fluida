@@ -210,22 +210,25 @@ describe('useFluidaContainerSize', () => {
     it('falls back to synchronous, uncoalesced notification when requestAnimationFrame is unavailable', () => {
       installMockResizeObserver();
       const originalRaf = globalThis.requestAnimationFrame;
-      // @ts-expect-error - deliberately simulating an environment without rAF
-      delete globalThis.requestAnimationFrame;
-
-      const sizes: Array<{ width: number; height: number }> = [];
-
-      const { getByTestId } = render(<Probe onSize={(size) => sizes.push(size)} />);
-      const element = getByTestId('probe');
-      const observer = getLiveObserverFor(element);
-
-      act(() => {
-        observer?.trigger(640, 480);
-      });
-
-      expect(sizes.at(-1)).toEqual({ width: 640, height: 480 });
-
-      globalThis.requestAnimationFrame = originalRaf;
+      try {
+        // @ts-expect-error - deliberately simulating an environment without rAF
+        delete globalThis.requestAnimationFrame;
+        const sizes: Array<{ width: number; height: number }> = [];
+        const { getByTestId } = render(
+          <Probe onSize={(size) => sizes.push(size)} />,
+        );
+        const element = getByTestId('probe');
+        const observer = getLiveObserverFor(element);
+        act(() => {
+          observer?.trigger(640, 480);
+        });
+        expect(sizes.at(-1)).toEqual({
+          width: 640,
+          height: 480,
+        });
+      } finally {
+        globalThis.requestAnimationFrame = originalRaf;
+      }
     });
   });
 });

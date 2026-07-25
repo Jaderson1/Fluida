@@ -59,6 +59,7 @@ describe('FluidaAdaptiveGrid', () => {
 
   it("applies fit's square cell sizing after a real measurement", () => {
     installMockResizeObserver();
+    vi.useFakeTimers();
 
     const { getByTestId } = render(
       <FluidaAdaptiveGrid itemCount={4} strategy="fit" gap={0} data-testid="grid">
@@ -74,14 +75,18 @@ describe('FluidaAdaptiveGrid', () => {
 
     act(() => {
       observer?.trigger(400, 100);
+      vi.runAllTimers();
     });
 
     expect(element.style.gridTemplateColumns).toBe('repeat(4, 100px)');
     expect(element.style.gridAutoRows).toBe('100px');
+
+    vi.useRealTimers();
   });
 
   it('applies a different cell shape for preserve-ratio than for fit, given the same measurement', () => {
     installMockResizeObserver();
+    vi.useFakeTimers();
 
     const { getByTestId } = render(
       <FluidaAdaptiveGrid
@@ -105,6 +110,7 @@ describe('FluidaAdaptiveGrid', () => {
 
     act(() => {
       observer?.trigger(800, 300);
+      vi.runAllTimers();
     });
 
     const columnsMatch = element.style.gridTemplateColumns.match(/repeat\((\d+),\s*([\d.]+)px\)/);
@@ -117,10 +123,13 @@ describe('FluidaAdaptiveGrid', () => {
     const cellHeight = Number(rowHeightMatch?.[1]);
 
     expect(cellWidth / cellHeight).toBeCloseTo(2, 1);
+
+    vi.useRealTimers();
   });
 
   it('updates its grid when the measured container is resized', () => {
     installMockResizeObserver();
+    vi.useFakeTimers();
 
     const { getByTestId } = render(
       <FluidaAdaptiveGrid itemCount={4} strategy="fit" gap={0} data-testid="grid">
@@ -136,15 +145,19 @@ describe('FluidaAdaptiveGrid', () => {
 
     act(() => {
       observer?.trigger(400, 100);
+      vi.runAllTimers();
     });
     const before = element.style.gridAutoRows;
 
     act(() => {
       observer?.trigger(800, 200);
+      vi.runAllTimers();
     });
     const after = element.style.gridAutoRows;
 
     expect(after).not.toBe(before);
+
+    vi.useRealTimers();
   });
 
   it('throws for an itemCount below 1, via the same FluidaConfigError Core already uses', () => {

@@ -13,22 +13,13 @@ function areSizesEqual(previous: ContainerSize, next: ContainerSize): boolean {
 }
 
 /**
- * Measures a real DOM element's content-box size via ResizeObserver.
- * Unlike useFluidaSnapshot/useFluidaLayout, this does not read from
- * any shared @fluida/core instance and does not require
- * <FluidaProvider> — each call observes whichever element `ref` is
- * attached to, independently.
+ * Measures an element with ResizeObserver.
  *
- * A fresh ResizeObserver is created inside subscribe() itself, every
- * time subscribe runs, rather than stored once and reused. That's
- * deliberate: it means React Strict Mode's development-only
- * setup → cleanup → setup replay is naturally safe here, with no
- * special handling needed — each cycle's observer is fully
- * disconnected by its own paired cleanup before the next one is
- * created, so there's no persisted resource for the replay to tear
- * down out from under a later setup, unlike FluidaProvider's Core
- * instance.
+ * Notifications are coalesced with requestAnimationFrame so rapid
+ * measurements trigger at most one React update per frame. The latest
+ * measured size always wins.
  */
+
 export function useFluidaContainerSize<T extends Element>(
   ref: RefObject<T | null>,
 ): ContainerSize {
@@ -49,6 +40,26 @@ export function useFluidaContainerSize<T extends Element>(
         return () => {};
       }
 
+      const canScheduleFrame = typeof requestAnimationFrame === 'function';
+      let pendingFrameId: number | null = null;
+
+      const scheduleNotify = (): void => {
+        if (!canScheduleFrame) {
+          // No requestAnimationFrame available in this environment —
+          // fall back to the old, uncoalesced behavior rather than
+          // silently never notifying at all.
+          onStoreChange();
+          return;
+        }
+
+        if (pendingFrameId !== null) return; // a frame is already scheduled
+
+        pendingFrameId = requestAnimationFrame(() => {
+          pendingFrameId = null;
+          onStoreChange();
+        });
+      };
+
       const observer = new ResizeObserver((entries) => {
         const entry = entries[0];
         if (!entry) return;
@@ -60,7 +71,7 @@ export function useFluidaContainerSize<T extends Element>(
 
         if (!areSizesEqual(sizeRef.current, nextSize)) {
           sizeRef.current = nextSize;
-          onStoreChange();
+          scheduleNotify();
         }
       });
 
@@ -68,6 +79,11 @@ export function useFluidaContainerSize<T extends Element>(
 
       return () => {
         observer.disconnect();
+
+        if (pendingFrameId !== null && canScheduleFrame) {
+          cancelAnimationFrame(pendingFrameId);
+          pendingFrameId = null;
+        }
       };
     },
     [ref],

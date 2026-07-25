@@ -1,6 +1,6 @@
 import { act, cleanup, render } from '@testing-library/react';
 import { StrictMode, useRef } from 'react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   getLiveObserverFor,
@@ -20,6 +20,7 @@ function Probe({ onSize }: { onSize: (size: { width: number; height: number }) =
 afterEach(() => {
   cleanup();
   removeMockResizeObserver();
+  vi.useRealTimers();
 });
 
 describe('useFluidaContainerSize', () => {
@@ -32,8 +33,9 @@ describe('useFluidaContainerSize', () => {
     expect(sizes[0]).toEqual({ width: 0, height: 0 });
   });
 
-  it('updates when the observed element is resized', () => {
+  it('updates when the observed element is resized, after the animation frame is flushed', () => {
     installMockResizeObserver();
+    vi.useFakeTimers();
     const sizes: Array<{ width: number; height: number }> = [];
 
     const { getByTestId } = render(<Probe onSize={(size) => sizes.push(size)} />);
@@ -46,11 +48,20 @@ describe('useFluidaContainerSize', () => {
       observer?.trigger(640, 480);
     });
 
+    // Not yet — the notification is deferred to the next animation
+    // frame, not delivered synchronously inside the observer callback.
+    expect(sizes.at(-1)).toEqual({ width: 0, height: 0 });
+
+    act(() => {
+      vi.runAllTimers();
+    });
+
     expect(sizes.at(-1)).toEqual({ width: 640, height: 480 });
   });
 
   it('keeps the same reference when triggered with an identical size', () => {
     installMockResizeObserver();
+    vi.useFakeTimers();
     const sizes: Array<{ width: number; height: number }> = [];
 
     const { getByTestId } = render(<Probe onSize={(size) => sizes.push(size)} />);
@@ -59,11 +70,13 @@ describe('useFluidaContainerSize', () => {
 
     act(() => {
       observer?.trigger(640, 480);
+      vi.runAllTimers();
     });
     const first = sizes.at(-1);
 
     act(() => {
       observer?.trigger(640, 480);
+      vi.runAllTimers();
     });
     const second = sizes.at(-1);
 
@@ -114,5 +127,105 @@ describe('useFluidaContainerSize', () => {
       (instance) => instance.observedElement === element && !instance.disconnected,
     ).length;
     expect(stillConnectedCount).toBe(1);
+  });
+
+  describe('requestAnimationFrame coalescing', () => {
+    it('delivers at most one update per frame, even if the observer fires more than once before the frame runs', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+      const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame');
+      const sizes: Array<{ width: number; height: number }> = [];
+
+      const { getByTestId } = render(<Probe onSize={(size) => sizes.push(size)} />);
+      const element = getByTestId('probe');
+      const observer = getLiveObserverFor(element);
+
+      act(() => {
+        observer?.trigger(100, 100);
+        observer?.trigger(200, 200);
+        observer?.trigger(300, 300);
+      });
+
+      expect(rafSpy).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        vi.runAllTimers();
+      });
+
+      expect(sizes.at(-1)).toEqual({ width: 300, height: 300 });
+
+      rafSpy.mockRestore();
+    });
+
+    it('produces a separate update for a resize that happens in a later, already-flushed frame', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+      const sizes: Array<{ width: number; height: number }> = [];
+
+      const { getByTestId } = render(<Probe onSize={(size) => sizes.push(size)} />);
+      const element = getByTestId('probe');
+      const observer = getLiveObserverFor(element);
+
+      act(() => {
+        observer?.trigger(100, 100);
+        vi.runAllTimers();
+      });
+      expect(sizes.at(-1)).toEqual({ width: 100, height: 100 });
+
+      act(() => {
+        observer?.trigger(200, 200);
+        vi.runAllTimers();
+      });
+      expect(sizes.at(-1)).toEqual({ width: 200, height: 200 });
+    });
+
+    it('cancels a pending frame on cleanup — the scheduled update never lands after unmount', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+      const cancelSpy = vi.spyOn(globalThis, 'cancelAnimationFrame');
+      const sizes: Array<{ width: number; height: number }> = [];
+
+      const { getByTestId, unmount } = render(<Probe onSize={(size) => sizes.push(size)} />);
+      const element = getByTestId('probe');
+      const observer = getLiveObserverFor(element);
+
+      act(() => {
+        observer?.trigger(640, 480);
+      });
+
+      const sizesBeforeUnmount = sizes.length;
+
+      unmount();
+      expect(cancelSpy).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        vi.runAllTimers();
+      });
+
+      expect(sizes.length).toBe(sizesBeforeUnmount);
+
+      cancelSpy.mockRestore();
+    });
+
+    it('falls back to synchronous, uncoalesced notification when requestAnimationFrame is unavailable', () => {
+      installMockResizeObserver();
+      const originalRaf = globalThis.requestAnimationFrame;
+      // @ts-expect-error - deliberately simulating an environment without rAF
+      delete globalThis.requestAnimationFrame;
+
+      const sizes: Array<{ width: number; height: number }> = [];
+
+      const { getByTestId } = render(<Probe onSize={(size) => sizes.push(size)} />);
+      const element = getByTestId('probe');
+      const observer = getLiveObserverFor(element);
+
+      act(() => {
+        observer?.trigger(640, 480);
+      });
+
+      expect(sizes.at(-1)).toEqual({ width: 640, height: 480 });
+
+      globalThis.requestAnimationFrame = originalRaf;
+    });
   });
 });

@@ -89,3 +89,19 @@ export interface ContainerLayoutResult {
   readonly cellWidth: number;
   readonly cellHeight: number;
 }
+
+export interface ContainerLayoutOptions {
+  readonly itemCount: number;
+
+  /** Defaults to 'fit'. */
+  readonly strategy?: ContainerLayoutStrategy;
+
+  /** Defaults to 16. */
+  readonly gap?: number;
+
+  /** width / height. Only used by the 'preserve-ratio' strategy. Defaults to 1. */
+  readonly aspectRatio?: number;
+
+  /** Minimum desired width for each item. */
+  readonly minItemWidth?: number;
+}

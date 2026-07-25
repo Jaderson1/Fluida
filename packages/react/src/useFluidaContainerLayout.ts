@@ -30,6 +30,7 @@ export function useFluidaContainerLayout<T extends Element>(
       options.strategy,
       options.gap,
       options.aspectRatio,
+      options.minItemWidth,
     ],
   );
 }

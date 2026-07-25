@@ -13,6 +13,7 @@ afterEach(() => {
   cleanup();
   removeMockResizeObserver();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 describe('FluidaAdaptiveGrid', () => {
@@ -49,7 +50,11 @@ describe('FluidaAdaptiveGrid', () => {
     installMockResizeObserver();
 
     const { getByTestId } = render(
-      <FluidaAdaptiveGrid itemCount={1} data-testid="grid" className="custom-class">
+      <FluidaAdaptiveGrid
+        itemCount={1}
+        data-testid="grid"
+        className="custom-class"
+      >
         <span>cell</span>
       </FluidaAdaptiveGrid>,
     );
@@ -62,7 +67,12 @@ describe('FluidaAdaptiveGrid', () => {
     vi.useFakeTimers();
 
     const { getByTestId } = render(
-      <FluidaAdaptiveGrid itemCount={4} strategy="fit" gap={0} data-testid="grid">
+      <FluidaAdaptiveGrid
+        itemCount={4}
+        strategy="fit"
+        gap={0}
+        data-testid="grid"
+      >
         <span>1</span>
         <span>2</span>
         <span>3</span>
@@ -80,8 +90,6 @@ describe('FluidaAdaptiveGrid', () => {
 
     expect(element.style.gridTemplateColumns).toBe('repeat(4, 100px)');
     expect(element.style.gridAutoRows).toBe('100px');
-
-    vi.useRealTimers();
   });
 
   it('applies a different cell shape for preserve-ratio than for fit, given the same measurement', () => {
@@ -113,7 +121,9 @@ describe('FluidaAdaptiveGrid', () => {
       vi.runAllTimers();
     });
 
-    const columnsMatch = element.style.gridTemplateColumns.match(/repeat\((\d+),\s*([\d.]+)px\)/);
+    const columnsMatch = element.style.gridTemplateColumns.match(
+      /repeat\((\d+),\s*([\d.]+)px\)/,
+    );
     const rowHeightMatch = element.style.gridAutoRows.match(/([\d.]+)px/);
 
     expect(columnsMatch).not.toBeNull();
@@ -123,8 +133,6 @@ describe('FluidaAdaptiveGrid', () => {
     const cellHeight = Number(rowHeightMatch?.[1]);
 
     expect(cellWidth / cellHeight).toBeCloseTo(2, 1);
-
-    vi.useRealTimers();
   });
 
   it('updates its grid when the measured container is resized', () => {
@@ -132,7 +140,12 @@ describe('FluidaAdaptiveGrid', () => {
     vi.useFakeTimers();
 
     const { getByTestId } = render(
-      <FluidaAdaptiveGrid itemCount={4} strategy="fit" gap={0} data-testid="grid">
+      <FluidaAdaptiveGrid
+        itemCount={4}
+        strategy="fit"
+        gap={0}
+        data-testid="grid"
+      >
         <span>1</span>
         <span>2</span>
         <span>3</span>
@@ -147,17 +160,17 @@ describe('FluidaAdaptiveGrid', () => {
       observer?.trigger(400, 100);
       vi.runAllTimers();
     });
+
     const before = element.style.gridAutoRows;
 
     act(() => {
       observer?.trigger(800, 200);
       vi.runAllTimers();
     });
+
     const after = element.style.gridAutoRows;
 
     expect(after).not.toBe(before);
-
-    vi.useRealTimers();
   });
 
   it('throws for an itemCount below 1, via the same FluidaConfigError Core already uses', () => {
@@ -170,6 +183,147 @@ describe('FluidaAdaptiveGrid', () => {
         </FluidaAdaptiveGrid>,
       );
     }).toThrow();
+  });
+
+  describe('minItemWidth', () => {
+    it('propagates minItemWidth to the underlying computation', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+
+      const { getByTestId } = render(
+        <FluidaAdaptiveGrid
+          itemCount={4}
+          gap={0}
+          strategy="fill"
+          minItemWidth={150}
+          data-testid="grid"
+        >
+          <span>1</span>
+          <span>2</span>
+          <span>3</span>
+          <span>4</span>
+        </FluidaAdaptiveGrid>,
+      );
+
+      const element = getByTestId('grid');
+      const observer = getLiveObserverFor(element);
+
+      act(() => {
+        observer?.trigger(400, 100);
+        vi.runAllTimers();
+      });
+
+      expect(element.style.gridTemplateColumns).toBe(
+        'repeat(2, 200px)',
+      );
+    });
+
+    it('reduces the column count in a narrow container compared to the same container without minItemWidth', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+
+      const withoutConstraint = render(
+        <FluidaAdaptiveGrid
+          itemCount={4}
+          gap={0}
+          strategy="fill"
+          data-testid="grid-a"
+        >
+          <span>1</span>
+          <span>2</span>
+          <span>3</span>
+          <span>4</span>
+        </FluidaAdaptiveGrid>,
+      );
+
+      const elementA = withoutConstraint.getByTestId('grid-a');
+      const observerA = getLiveObserverFor(elementA);
+
+      act(() => {
+        observerA?.trigger(400, 100);
+        vi.runAllTimers();
+      });
+
+      const columnsWithoutConstraint =
+        elementA.style.gridTemplateColumns;
+
+      const withConstraint = render(
+        <FluidaAdaptiveGrid
+          itemCount={4}
+          gap={0}
+          strategy="fill"
+          minItemWidth={150}
+          data-testid="grid-b"
+        >
+          <span>1</span>
+          <span>2</span>
+          <span>3</span>
+          <span>4</span>
+        </FluidaAdaptiveGrid>,
+      );
+
+      const elementB = withConstraint.getByTestId('grid-b');
+      const observerB = getLiveObserverFor(elementB);
+
+      act(() => {
+        observerB?.trigger(400, 100);
+        vi.runAllTimers();
+      });
+
+      const columnsWithConstraint =
+        elementB.style.gridTemplateColumns;
+
+      expect(columnsWithoutConstraint).toBe('repeat(4, 100px)');
+      expect(columnsWithConstraint).toBe('repeat(2, 200px)');
+    });
+
+    it('keeps the exact current behavior when minItemWidth is not provided', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+
+      const { getByTestId } = render(
+        <FluidaAdaptiveGrid
+          itemCount={4}
+          strategy="fit"
+          gap={0}
+          data-testid="grid"
+        >
+          <span>1</span>
+          <span>2</span>
+          <span>3</span>
+          <span>4</span>
+        </FluidaAdaptiveGrid>,
+      );
+
+      const element = getByTestId('grid');
+      const observer = getLiveObserverFor(element);
+
+      act(() => {
+        observer?.trigger(400, 100);
+        vi.runAllTimers();
+      });
+
+      expect(element.style.gridTemplateColumns).toBe(
+        'repeat(4, 100px)',
+      );
+      expect(element.style.gridAutoRows).toBe('100px');
+    });
+
+    it('propagates FluidaConfigError for an invalid minItemWidth', () => {
+      installMockResizeObserver();
+
+      expect(() => {
+        render(
+          <FluidaAdaptiveGrid
+            itemCount={4}
+            minItemWidth={0}
+            data-testid="grid"
+          >
+            <span>1</span>
+          </FluidaAdaptiveGrid>,
+        );
+      }).toThrow();
+    });
   });
 });
 
@@ -238,7 +392,10 @@ describe('height safety (regression)', () => {
 describe('itemCount vs. rendered children (development warning)', () => {
   it('warns in development when itemCount does not match the number of children', () => {
     installMockResizeObserver();
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const warnSpy = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => {});
 
     render(
       <FluidaAdaptiveGrid itemCount={3}>
@@ -253,7 +410,10 @@ describe('itemCount vs. rendered children (development warning)', () => {
 
   it('does not warn when itemCount matches the number of children', () => {
     installMockResizeObserver();
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const warnSpy = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => {});
 
     render(
       <FluidaAdaptiveGrid itemCount={2}>
@@ -267,6 +427,7 @@ describe('itemCount vs. rendered children (development warning)', () => {
 
   it('does not throw when itemCount and children disagree', () => {
     installMockResizeObserver();
+
     vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     expect(() => {

@@ -18,12 +18,21 @@ interface CandidateColumns {
  * square — cell. This is the base every strategy below builds on:
  * 'fill' returns it as-is; the others apply a different sizing rule
  * on top of the same chosen column count.
+ *
+ * minItemWidth, when set, discards any column count whose resulting
+ * cellWidth would fall below it, before that candidate is even
+ * scored — it restricts which column counts are eligible, it does
+ * not change how the winner among the eligible ones is chosen. A
+ * narrower container has fewer columns survive this filter, which is
+ * what naturally drives the column count down as the container gets
+ * narrower, without a separate "stacking" code path.
  */
 function findBestFillingColumns(
   containerWidth: number,
   containerHeight: number,
   itemCount: number,
   gap: number,
+  minItemWidth?: number,
 ): CandidateColumns {
   let best: CandidateColumns | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
@@ -35,6 +44,7 @@ function findBestFillingColumns(
     const cellHeight = (containerHeight - (rows - 1) * gap) / rows;
 
     if (cellWidth <= 0 || cellHeight <= 0) continue;
+    if (minItemWidth !== undefined && cellWidth < minItemWidth) continue;
 
     const score = Math.abs(cellWidth - cellHeight);
 
@@ -44,10 +54,9 @@ function findBestFillingColumns(
     }
   }
 
-  // No candidate produced a positive size — the container isn't
-  // measured yet (e.g. width/height are 0, the SSR fallback). A
-  // single column at zero size is the honest answer: not wrong,
-  // just not yet known.
+  // No candidate produced a positive size, or none met minItemWidth —
+  // either way, a single column at zero size is the honest answer:
+  // not wrong, just not something that currently fits.
   return (
     best ?? {
       columns: 1,
@@ -63,7 +72,13 @@ export function computeContainerLayout(
   containerHeight: number,
   options: ContainerLayoutOptions,
 ): ContainerLayoutResult {
-  const { itemCount, strategy = 'fit', gap = DEFAULT_GAP, aspectRatio = DEFAULT_ASPECT_RATIO } = options;
+  const {
+    itemCount,
+    strategy = 'fit',
+    gap = DEFAULT_GAP,
+    aspectRatio = DEFAULT_ASPECT_RATIO,
+    minItemWidth,
+  } = options;
 
   if (!Number.isFinite(itemCount) || itemCount < 1) {
     throw new FluidaConfigError(
@@ -83,7 +98,13 @@ export function computeContainerLayout(
     );
   }
 
-  const base = findBestFillingColumns(containerWidth, containerHeight, itemCount, gap);
+  if (minItemWidth !== undefined && (!Number.isFinite(minItemWidth) || minItemWidth <= 0)) {
+    throw new FluidaConfigError(
+      `Fluida container layout: minItemWidth must be a finite number greater than 0, got ${minItemWidth}.`,
+    );
+  }
+
+  const base = findBestFillingColumns(containerWidth, containerHeight, itemCount, gap, minItemWidth);
 
   if (base.cellWidth <= 0 || base.cellHeight <= 0) {
     // Nothing measured yet — return the shape as-is, at zero size,

@@ -106,4 +106,118 @@ describe('computeContainerLayout', () => {
       }),
     ).toThrow(FluidaConfigError);
   });
+
+  describe('minItemWidth', () => {
+    it('leaves behavior exactly unchanged when omitted', () => {
+      const withoutOption = computeContainerLayout(400, 100, {
+        itemCount: 4,
+        gap: 0,
+        strategy: 'fill',
+      });
+      const withUndefined = computeContainerLayout(400, 100, {
+        itemCount: 4,
+        gap: 0,
+        strategy: 'fill',
+        minItemWidth: undefined,
+      });
+
+      expect(withUndefined).toEqual(withoutOption);
+      expect(withoutOption).toEqual({ columns: 4, rows: 1, cellWidth: 100, cellHeight: 100 });
+    });
+
+    it('forces fewer columns when the minimum width demands it', () => {
+      // Without minItemWidth, 4 columns of 100px each is the fill
+      // answer (verified by the test above). 150 rules 4 out (100 
+      // 150) and 3 out (~133.33 < 150), leaving 2 columns of 200px
+      // as the widest still-eligible option.
+      const result = computeContainerLayout(400, 100, {
+        itemCount: 4,
+        gap: 0,
+        strategy: 'fill',
+        minItemWidth: 150,
+      });
+
+      expect(result).toEqual({ columns: 2, rows: 2, cellWidth: 200, cellHeight: 50 });
+    });
+
+    it('accounts for gap when checking a candidate against minItemWidth', () => {
+      // 6 items, 1200px wide, gap 16: 5 columns would need
+      // (1200 - 4*16) / 5 = 227.2px per cell — below 280 — so 5
+      // columns must be excluded, and 4 columns (288px, comfortably
+      // over 280) is what's left to win.
+      const result = computeContainerLayout(1200, 600, {
+        itemCount: 6,
+        gap: 16,
+        minItemWidth: 280,
+      });
+
+      expect(result.columns).toBe(4);
+      expect(result.cellWidth).toBeGreaterThanOrEqual(280);
+    });
+
+    it('falls back to the standard not-yet-fitting shape when no column count reaches minItemWidth', () => {
+      const result = computeContainerLayout(400, 100, {
+        itemCount: 4,
+        gap: 0,
+        minItemWidth: 10000,
+      });
+
+      expect(result).toEqual({ columns: 1, rows: 4, cellWidth: 0, cellHeight: 0 });
+    });
+
+    it('throws FluidaConfigError for minItemWidth of 0', () => {
+      expect(() =>
+        computeContainerLayout(800, 600, { itemCount: 4, minItemWidth: 0 }),
+      ).toThrow(FluidaConfigError);
+    });
+
+    it('throws FluidaConfigError for a negative minItemWidth', () => {
+      expect(() =>
+        computeContainerLayout(800, 600, { itemCount: 4, minItemWidth: -50 }),
+      ).toThrow(FluidaConfigError);
+    });
+
+    it('throws FluidaConfigError for a NaN minItemWidth', () => {
+      expect(() =>
+        computeContainerLayout(800, 600, { itemCount: 4, minItemWidth: Number.NaN }),
+      ).toThrow(FluidaConfigError);
+    });
+
+    it('throws FluidaConfigError for an Infinity minItemWidth', () => {
+      expect(() =>
+        computeContainerLayout(800, 600, {
+          itemCount: 4,
+          minItemWidth: Number.POSITIVE_INFINITY,
+        }),
+      ).toThrow(FluidaConfigError);
+    });
+
+    it("interacts with the 'fit' strategy: fit still squares off whatever candidate minItemWidth left eligible", () => {
+      const result = computeContainerLayout(400, 100, {
+        itemCount: 4,
+        gap: 0,
+        strategy: 'fit',
+        minItemWidth: 150,
+      });
+
+      // Same eligible candidate as the fill test above (2 columns,
+      // 200x50) — 'fit' then squares it to the smaller dimension.
+      expect(result.columns).toBe(2);
+      expect(result.cellWidth).toBe(result.cellHeight);
+      expect(result.cellWidth).toBe(50);
+    });
+
+    it("interacts with 'preserve-ratio': the aspect ratio is honored on top of the minItemWidth-filtered candidate", () => {
+      const result = computeContainerLayout(400, 100, {
+        itemCount: 4,
+        gap: 0,
+        strategy: 'preserve-ratio',
+        aspectRatio: 2,
+        minItemWidth: 150,
+      });
+
+      expect(result.columns).toBe(2);
+      expect(result.cellWidth / result.cellHeight).toBeCloseTo(2, 5);
+    });
+  });
 });

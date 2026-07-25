@@ -42,6 +42,8 @@ export interface FluidaAdaptiveGridProps extends ComponentPropsWithoutRef<'div'>
   readonly gap?: number;
   /** width / height. Only used by the 'preserve-ratio' strategy. Defaults to 1. */
   readonly aspectRatio?: number;
+  /** When set, column counts whose resulting cell would be narrower than this are excluded from consideration entirely. Undefined (the default) applies no such constraint. */
+  readonly minItemWidth?: number;
 }
 
 /**
@@ -78,7 +80,7 @@ export interface FluidaAdaptiveGridProps extends ComponentPropsWithoutRef<'div'>
  */
 export const FluidaAdaptiveGrid = forwardRef<HTMLDivElement, FluidaAdaptiveGridProps>(
   function FluidaAdaptiveGrid(
-    { itemCount, strategy, gap, aspectRatio, style, children, ...rest },
+    { itemCount, strategy, gap, aspectRatio, minItemWidth, style, children, ...rest },
     forwardedRef,
   ) {
     const internalRef = useRef<HTMLDivElement | null>(null);
@@ -88,6 +90,7 @@ export const FluidaAdaptiveGrid = forwardRef<HTMLDivElement, FluidaAdaptiveGridP
       strategy,
       gap,
       aspectRatio,
+      minItemWidth,
     };
 
     const layout = useFluidaContainerLayout(internalRef, options);

@@ -3,8 +3,10 @@
 *A layout engine that reasons about both the viewport and the real space inside a container.*
 
 [![CI](https://github.com/Jaderson1/Fluida/actions/workflows/ci.yml/badge.svg)](https://github.com/Jaderson1/Fluida/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![Status](https://img.shields.io/badge/status-pre--release-orange)
+[![npm core](https://img.shields.io/npm/v/@fluida/core?label=%40fluida%2Fcore)](https://www.npmjs.com/package/@fluida/core)
+[![npm react](https://img.shields.io/npm/v/@fluida/react?label=%40fluida%2Freact)](https://www.npmjs.com/package/@fluida/react)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Status](https://img.shields.io/badge/status-public%20beta-blue)
 
 Fluida is a responsive layout library organized into two complementary packages:
 
@@ -13,26 +15,35 @@ Fluida is a responsive layout library organized into two complementary packages:
 
 Together, they form the Fluida project. Fluida computes responsive layout decisions from two independent sources: a viewport's width, and a real container's measured size together with a known item count.
 
-**Status: pre-release, `0.0.1`.** Both packages are implemented and tested. Neither is published to npm yet.
+**Status: public beta — v0.1.0.**
 
----
+## Installation
 
-## Table of contents
+For React applications:
 
-- [The problem](#the-problem)
-- [Viewport layout vs. container layout](#viewport-layout-vs-container-layout)
-- [Quick example](#quick-example)
-- [`FluidaAdaptiveGrid` example](#fluidaadaptivegrid-example)
-- [Monorepo structure](#monorepo-structure)
-- [Packages](#packages)
-- [Development](#development)
-- [Publishing (for maintainers)](#publishing-for-maintainers)
-- [Future installation](#future-installation)
-- [Compatibility](#compatibility)
-- [Contributing](#contributing)
-- [License](#license)
+```bash
+npm install @fluida/react
+```
 
----
+Or with pnpm:
+
+```bash
+pnpm add @fluida/react
+```
+
+`@fluida/core` is installed automatically as a dependency.
+
+For framework-agnostic usage:
+
+```bash
+npm install @fluida/core
+```
+
+Or with pnpm:
+
+```bash
+pnpm add @fluida/core
+```
 
 ## The problem
 
@@ -44,7 +55,7 @@ These are two independent systems inside `@fluida/core`, sharing no state with e
 
 **Viewport layout** answers "what layout is the whole page in right now" — breakpoint, grid columns, spacing, typography scale, and container max-width, all derived from the browser's viewport width.
 
-**Container layout** answers "given this exact measured space and this many items, what's the best grid" — column count and cell size, derived from a specific element's real size (via `ResizeObserver` in the React adapter) and an item count you provide. It does not need to know anything about the viewport.
+**Container layout** answers "given this exact measured space and this many items, what's the best grid" — column count and cell size, derived from a specific element's real size and an item count you provide.
 
 ## Quick example
 
@@ -68,8 +79,6 @@ export function App() {
 
 ## `FluidaAdaptiveGrid` example
 
-`FluidaAdaptiveGrid` measures its own real rendered size with `ResizeObserver` — not the viewport — and lays out a known number of children to fit it:
-
 ```tsx
 import { FluidaAdaptiveGrid } from '@fluida/react';
 
@@ -85,12 +94,21 @@ import { FluidaAdaptiveGrid } from '@fluida/react';
 
 ## Monorepo structure
 
+```text
+packages/
+├── core/        → @fluida/core
+└── react/       → @fluida/react
+
+examples/
+└── react-demo/  → Vite + React demo
+```
+
 ## Packages
 
 | Package | Description |
 |---|---|
-| [`@fluida/core`](packages/core/README.md) | Framework-agnostic engine. See its README for the full public API. |
-| [`@fluida/react`](packages/react/README.md) | The React integration. See its README for every component, hook, and prop. |
+| [`@fluida/core`](packages/core/README.md) | Framework-agnostic engine. |
+| [`@fluida/react`](packages/react/README.md) | React integration. |
 
 ## Development
 
@@ -102,43 +120,29 @@ pnpm install
 ```
 
 ```bash
-pnpm build       # build @fluida/core and @fluida/react
-pnpm typecheck   # typecheck all packages
-pnpm test        # run all tests
-pnpm demo:react  # run the live React demo
+pnpm build
+pnpm typecheck
+pnpm test
+pnpm demo:react
 ```
 
 ## Publishing (for maintainers)
 
-Always use `pnpm publish` — or `pnpm pack` to inspect a tarball first — rather than plain `npm publish` or `npm pack`.
-
-`@fluida/react` depends on `@fluida/core` through `workspace:*`. pnpm rewrites that protocol to a real version number when packing or publishing. Plain npm does not understand the `workspace:` protocol and can produce a tarball that fails to install outside the workspace.
+Always use `pnpm publish` or `pnpm pack`, not plain npm commands.
 
 Publish in this order:
 
 1. `@fluida/core`
 2. `@fluida/react`
 
-## Future installation
-
-Neither `@fluida/core` nor `@fluida/react` is published to npm yet. Once published, installation will look like:
-
-```bash
-npm install @fluida/core @fluida/react
-```
-
-Until then, use this monorepo directly (see [Development](#development)), or a `workspace:*` dependency when working inside it.
-
 ## Compatibility
 
-- `@fluida/core` has no runtime dependencies and works in any modern JavaScript environment.
-- `@fluida/react` requires `react` and `react-dom` as peer dependencies. See [`packages/react/README.md`](packages/react/README.md) for the exact supported versions.
+- `@fluida/core` has no runtime dependencies.
+- `@fluida/react` requires React and React DOM `>=18.0.0`.
 
 ## Contributing
 
-This is an early-stage project. Issues and pull requests are welcome.
-
-Before opening a pull request, run:
+Issues and pull requests are welcome.
 
 ```bash
 pnpm typecheck

@@ -1,0 +1,266 @@
+{
+  "description": "Shared, language-neutral test cases for computeContainerLayout's behavior. Every case here was extracted from, or verified directly against, @fluida/core's TypeScript implementation and its existing unit tests — not invented independently. This is a shared set of inputs and expected outputs, not a formal specification: it exists so any current or future implementation (in any language) can be checked against the same real cases the TypeScript implementation already passes.",
+  "tolerance": {
+    "relative": 1e-6,
+    "absoluteMinimum": 1e-6,
+    "note": "columns and rows must match exactly. cellWidth and cellHeight must be within max(absoluteMinimum, abs(expected) * relative) of the expected value — a relative tolerance with an absolute floor, so exact-zero expectations (e.g. the not-yet-fitting fallback) still allow a tiny epsilon instead of demanding bit-exact equality."
+  },
+  "cases": [
+    {
+      "id": "defaults",
+      "description": "No strategy, gap, or aspectRatio given — defaults to fit, gap 16, aspectRatio 1. Also demonstrates an irregular item count (8 items do not divide evenly into any column count without leftover cells) and a decimal (non-integer) result.",
+      "covers": ["defaults", "fit", "irregular-item-count", "decimal-results"],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": 600,
+        "options": { "itemCount": 8 }
+      },
+      "expected": {
+        "columns": 3,
+        "rows": 3,
+        "cellWidth": 189.33333333333334,
+        "cellHeight": 189.33333333333334
+      }
+    },
+    {
+      "id": "fit-explicit",
+      "description": "Explicit fit strategy: square cells, sized to the smaller dimension of the unconstrained fill answer.",
+      "covers": ["fit"],
+      "input": {
+        "containerWidth": 900,
+        "containerHeight": 500,
+        "options": { "itemCount": 5, "strategy": "fit" }
+      },
+      "expected": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 213,
+        "cellHeight": 213
+      }
+    },
+    {
+      "id": "fill",
+      "description": "Fill strategy: uses the exact available space in both axes, even though the resulting cell is not square.",
+      "covers": ["fill"],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": 600,
+        "options": { "itemCount": 8, "strategy": "fill" }
+      },
+      "expected": {
+        "columns": 3,
+        "rows": 3,
+        "cellWidth": 256,
+        "cellHeight": 189.33333333333334
+      }
+    },
+    {
+      "id": "balanced",
+      "description": "Balanced strategy: a square cell sized to the geometric mean of the fill answer's width and height — between fit's (smaller) and fill's (larger) dimension.",
+      "covers": ["balanced"],
+      "input": {
+        "containerWidth": 900,
+        "containerHeight": 500,
+        "options": { "itemCount": 5, "strategy": "balanced" }
+      },
+      "expected": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 227.0374418460532,
+        "cellHeight": 227.0374418460532
+      }
+    },
+    {
+      "id": "preserve-ratio-integer-ratio",
+      "description": "preserve-ratio with an integer aspect ratio (2): the cell keeps exactly that width-to-height ratio.",
+      "covers": ["preserve-ratio"],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": 600,
+        "options": { "itemCount": 6, "strategy": "preserve-ratio", "aspectRatio": 2 }
+      },
+      "expected": {
+        "columns": 3,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 128
+      }
+    },
+    {
+      "id": "preserve-ratio-fractional-ratio",
+      "description": "preserve-ratio with a fractional (non-integer) aspect ratio, 16/9 — the same widescreen ratio used throughout the project's own demo and documentation.",
+      "covers": ["aspect-ratio-fractional", "preserve-ratio"],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": 450,
+        "options": { "itemCount": 4, "strategy": "preserve-ratio", "aspectRatio": 1.7777777777777777 }
+      },
+      "expected": {
+        "columns": 3,
+        "rows": 2,
+        "cellWidth": 256,
+        "cellHeight": 144
+      }
+    },
+    {
+      "id": "gap-zero-integer-result",
+      "description": "gap explicitly set to 0, and minItemWidth omitted entirely — an integer result (100x100), and the baseline that the minItemWidth-reduces-columns case below is compared against.",
+      "covers": ["gap", "minItemWidth-omitted", "integer-results"],
+      "input": {
+        "containerWidth": 400,
+        "containerHeight": 100,
+        "options": { "itemCount": 4, "gap": 0, "strategy": "fill" }
+      },
+      "expected": {
+        "columns": 4,
+        "rows": 1,
+        "cellWidth": 100,
+        "cellHeight": 100
+      }
+    },
+    {
+      "id": "zero-size-container",
+      "description": "Container with no measured size yet (width and height both 0) — the honest not-yet-fitting fallback, not an error.",
+      "covers": ["zero-size-container"],
+      "input": {
+        "containerWidth": 0,
+        "containerHeight": 0,
+        "options": { "itemCount": 8 }
+      },
+      "expected": {
+        "columns": 1,
+        "rows": 8,
+        "cellWidth": 0,
+        "cellHeight": 0
+      }
+    },
+    {
+      "id": "min-item-width-reduces-columns",
+      "description": "Same container and item count as gap-zero-integer-result, but with minItemWidth: 150 — 4 columns of 100px each would be excluded (100 < 150), leaving 2 columns of 200px as the widest still-eligible option.",
+      "covers": ["minItemWidth-reduces-columns"],
+      "input": {
+        "containerWidth": 400,
+        "containerHeight": 100,
+        "options": { "itemCount": 4, "gap": 0, "strategy": "fill", "minItemWidth": 150 }
+      },
+      "expected": {
+        "columns": 2,
+        "rows": 2,
+        "cellWidth": 200,
+        "cellHeight": 50
+      }
+    },
+    {
+      "id": "min-item-width-accounts-for-gap",
+      "description": "minItemWidth checked against a cell width that already has gap subtracted: with a 16px gap, 5 columns would need (1200 - 4*16) / 5 = 227.2px per cell, below the 280px minimum, so 5 columns is excluded and 4 columns (288px) wins instead.",
+      "covers": ["minItemWidth-with-gap"],
+      "input": {
+        "containerWidth": 1200,
+        "containerHeight": 600,
+        "options": { "itemCount": 6, "gap": 16, "minItemWidth": 280 }
+      },
+      "expected": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 288,
+        "cellHeight": 288
+      }
+    },
+    {
+      "id": "min-item-width-impossible",
+      "description": "minItemWidth set higher than any column count could ever satisfy in this container — falls back to the same not-yet-fitting shape as zero-size-container, not a distinct error.",
+      "covers": ["minItemWidth-impossible"],
+      "input": {
+        "containerWidth": 400,
+        "containerHeight": 100,
+        "options": { "itemCount": 4, "gap": 0, "minItemWidth": 10000 }
+      },
+      "expected": {
+        "columns": 1,
+        "rows": 4,
+        "cellWidth": 0,
+        "cellHeight": 0
+      }
+    },
+    {
+      "id": "min-item-width-with-fit-strategy",
+      "description": "minItemWidth filters eligible columns first; fit then squares off whatever candidate survived that filter — same 2-column, 200x50 candidate as min-item-width-reduces-columns, squared down to 50x50.",
+      "covers": ["minItemWidth-reduces-columns"],
+      "input": {
+        "containerWidth": 400,
+        "containerHeight": 100,
+        "options": { "itemCount": 4, "gap": 0, "strategy": "fit", "minItemWidth": 150 }
+      },
+      "expected": {
+        "columns": 2,
+        "rows": 2,
+        "cellWidth": 50,
+        "cellHeight": 50
+      }
+    },
+    {
+      "id": "min-item-width-with-preserve-ratio",
+      "description": "minItemWidth filters eligible columns first; preserve-ratio then applies its configured aspect ratio on top of the same surviving candidate.",
+      "covers": ["minItemWidth-reduces-columns", "preserve-ratio"],
+      "input": {
+        "containerWidth": 400,
+        "containerHeight": 100,
+        "options": { "itemCount": 4, "gap": 0, "strategy": "preserve-ratio", "aspectRatio": 2, "minItemWidth": 150 }
+      },
+      "expected": {
+        "columns": 2,
+        "rows": 2,
+        "cellWidth": 100,
+        "cellHeight": 50
+      }
+    },
+    {
+      "id": "odd-item-count",
+      "description": "A prime, irregular item count (7) that cannot divide evenly into any small grid.",
+      "covers": ["irregular-item-count"],
+      "input": {
+        "containerWidth": 1000,
+        "containerHeight": 700,
+        "options": { "itemCount": 7 }
+      },
+      "expected": {
+        "columns": 3,
+        "rows": 3,
+        "cellWidth": 222.66666666666666,
+        "cellHeight": 222.66666666666666
+      }
+    },
+    {
+      "id": "single-item",
+      "description": "A single item — the simplest possible case, one column and one row, filling the whole measured space.",
+      "covers": ["irregular-item-count"],
+      "input": {
+        "containerWidth": 500,
+        "containerHeight": 300,
+        "options": { "itemCount": 1 }
+      },
+      "expected": {
+        "columns": 1,
+        "rows": 1,
+        "cellWidth": 300,
+        "cellHeight": 300
+      }
+    },
+    {
+      "id": "many-columns-narrow-gap",
+      "description": "A wider, shallower container with more items and a smaller gap than the other cases — an integer result at a different scale than gap-zero-integer-result.",
+      "covers": ["gap", "integer-results"],
+      "input": {
+        "containerWidth": 1000,
+        "containerHeight": 200,
+        "options": { "itemCount": 10, "gap": 8 }
+      },
+      "expected": {
+        "columns": 9,
+        "rows": 2,
+        "cellWidth": 96,
+        "cellHeight": 96
+      }
+    }
+  ]
+}

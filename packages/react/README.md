@@ -97,6 +97,9 @@ import { FluidaAdaptiveGrid } from '@fluida/react';
 | `strategy` | `'fit' \| 'fill' \| 'balanced' \| 'preserve-ratio'` | `'fit'` |
 | `gap` | `number` | `16` |
 | `aspectRatio` | `number` | `1` |
+| `minItemWidth` | `number` | none — no constraint |
+
+`minItemWidth` excludes any column count whose resulting cell would be narrower than it, so the grid naturally uses fewer columns in a narrower container — without a separate "stacking" code path. Omitted, behavior is unchanged from before this prop existed.
 
 ### `useFluidaContainerSize(ref)`
 

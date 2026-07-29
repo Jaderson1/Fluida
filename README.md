@@ -99,18 +99,34 @@ packages/
 ├── core/        → @fluida/core
 └── react/       → @fluida/react
 
+python/
+├── fluida-core/ → pure-Python port of the same layout algorithm
+└── dash-fluida/ → initial Dash custom component
+
+spec/
+└── conformance/ → shared test cases checked by both the TypeScript and Python implementations
+
 examples/
 └── react-demo/  → Vite + React demo
 ```
 
 ## Packages
 
+Fluida is a container-aware adaptive layout engine, currently available as a TypeScript core, a React adapter, an independent pure-Python implementation, and an initial Dash adapter.
+
 | Package | Description |
 |---|---|
-| [`@fluida/core`](packages/core/README.md) | Framework-agnostic engine. |
+| [`@fluida/core`](packages/core/README.md) | Framework-agnostic engine (TypeScript). |
 | [`@fluida/react`](packages/react/README.md) | React integration. |
+| [`fluida-core`](python/fluida-core/README.md) | Pure-Python port of the same layout algorithm — no JavaScript involved. |
+| [`dash-fluida`](python/dash-fluida/README.md) | Initial Dash custom component; measures the container and computes the layout in the browser, using `@fluida/core` directly. |
+
+Two things worth being precise about, rather than implying more than is true: `dash-fluida`'s actual measurement and calculation happens in the browser (via `@fluida/core`, bundled into its frontend) — the Python side declares the component and can optionally receive the computed layout back, but never computes it itself and never sees a resize event by default. `fluida-core` (Python) is a completely separate, independent implementation from that — useful on its own for offline calculations, backend logic, or generating previews without a browser at all.
+
+The TypeScript and Python implementations are checked against the same shared cases in [`spec/conformance/layout-cases.json`](spec/conformance/layout-cases.json) — `columns`/`rows` must match exactly, `cellWidth`/`cellHeight` within a small declared numeric tolerance, since floating-point arithmetic across two different language runtimes isn't expected to match beyond that. Adapters (React, Dash, and any future one) may have their own integration logic — Strict Mode handling, or how resize events reach the server — but none of them alter the layout rules themselves; that logic lives only in `@fluida/core`, reused as-is.
 
 ## Development
+
 
 ```bash
 git clone https://github.com/Jaderson1/Fluida.git
@@ -134,15 +150,19 @@ Publish in this order:
 
 1. `@fluida/core`
 2. `@fluida/react`
+3. `fluida-core` (PyPI)
+4. `dash-fluida` (PyPI)
 
 ## Compatibility
 
 - `@fluida/core` has no runtime dependencies.
 - `@fluida/react` requires React and React DOM `>=18.0.0`.
+- `fluida-core` (Python) requires Python `>=3.9`, no runtime dependencies.
+- `dash-fluida` requires Dash `>=2.4`.
 
 ## Contributing
 
-Issues and pull requests are welcome.
+Issues and pull requests are welcome. See [`CHANGELOG.md`](CHANGELOG.md) for what's changed between versions.
 
 ```bash
 pnpm typecheck

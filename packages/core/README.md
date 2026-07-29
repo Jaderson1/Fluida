@@ -93,6 +93,7 @@ interface ContainerLayoutOptions {
   strategy?: 'fit' | 'fill' | 'balanced' | 'preserve-ratio';
   gap?: number;
   aspectRatio?: number;
+  minItemWidth?: number;
 }
 
 interface ContainerLayoutResult {
@@ -109,6 +110,8 @@ Strategies:
 - **`fill`** — uses the available width and height.
 - **`balanced`** — a middle ground between fit and fill.
 - **`preserve-ratio`** — preserves the configured aspect ratio.
+
+`minItemWidth`, when set, excludes any column count whose resulting cell would be narrower than it, before that candidate is even scored — it restricts which column counts are eligible; it does not change how the winner among the eligible ones is chosen or how the strategy sizes the final cell. Omitted (the default), it applies no such constraint — identical to the behavior before this option existed. If no column count satisfies it, the same not-yet-fitting fallback (`columns: 1`, zero-size cell) is returned, not a distinct error.
 
 ## Server-side rendering
 

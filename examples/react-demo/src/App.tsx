@@ -33,6 +33,8 @@ export function App() {
             { minimumWidth: 1536, containerMaxWidth: 1320 },
             { minimumWidth: 1800, containerMaxWidth: 1600 },
             { minimumWidth: 2400, containerMaxWidth: 2000 },
+            { minimumWidth: 2560, containerMaxWidth: 2200 },
+            { minimumWidth: 3840, containerMaxWidth: 3000 },
           ],
         },
       }}
@@ -43,9 +45,8 @@ export function App() {
         <header>
           <FluidaText as="h1">Fluida — live demo</FluidaText>
           <p>
-            Resize the window — the banner, panels, grid, and this
-            heading all react automatically. Card colors and borders
-            are ordinary CSS; Fluida only drives the layout values.
+            Resize the window to see it react. Cards use plain CSS;
+            Fluida only drives the layout numbers.
           </p>
 
           <details className="viewport-note">

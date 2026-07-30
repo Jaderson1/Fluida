@@ -1,0 +1,181 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  max-width: 100%;
+}
+
+body {
+  background: #f5f5f7;
+  color: #1a1a1a;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+/*
+ * Width-cap ladder — the Dash-side equivalent of the React demo's
+ * container.tiers config. Mirrors the React demo's own tiers so both
+ * demos grow at comparable points.
+ */
+.dash-shell {
+  margin: 0 auto;
+  padding: 12px 16px;
+  width: 100%;
+  max-width: 480px;
+}
+
+@media (min-width: 640px) {
+  .dash-shell {
+    padding: 20px 24px 32px;
+    max-width: 600px;
+  }
+}
+
+@media (min-width: 768px) {
+  .dash-shell {
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dash-shell {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .dash-shell {
+    max-width: 1140px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .dash-shell {
+    max-width: 1320px;
+  }
+}
+
+@media (min-width: 1800px) {
+  .dash-shell {
+    max-width: 1600px;
+  }
+}
+
+@media (min-width: 2400px) {
+  .dash-shell {
+    max-width: 2000px;
+  }
+}
+
+@media (min-width: 2560px) {
+  .dash-shell {
+    max-width: 2200px;
+  }
+}
+
+@media (min-width: 3840px) {
+  .dash-shell {
+    max-width: 3000px;
+  }
+}
+
+header h1 {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+}
+
+header p {
+  margin: 0 0 16px;
+  color: #555;
+  max-width: 70ch;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 16px;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .panel {
+    padding: 16px 20px;
+  }
+}
+
+.panel h2 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+
+.panel-note {
+  font-size: 0.85rem;
+  color: #555;
+  max-width: 70ch;
+  margin: 0 0 14px;
+}
+
+/* --- min_item_width comparison --- */
+
+/*
+ * Stacked (one column above the other) below 900px of available panel
+ * width — at that width, splitting it in half is exactly what was
+ * pushing min_item_width to force the grid down to a single column in
+ * the first place. Side by side once there's enough room that halving
+ * it still leaves each grid a reasonable width.
+ */
+.compare-row {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 900px) {
+  .compare-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+}
+
+.compare-column {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .compare-column {
+    flex: 1 1 260px;
+  }
+}
+
+.compare-column h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.grid {
+  transition: grid-template-columns 0.15s ease;
+}
+
+/*
+ * The real fix for the "tiny green dots" bug: FluidaGrid's own
+ * container div has an internal minHeight: 200px floor and no
+ * ceiling (inside FluidaGrid.tsx — not touched here). Without an
+ * explicit height of its own, a narrow, many-row grid measured itself
+ * against that flat 200px floor, producing a handful of pixels per
+ * row once min_item_width forced it down to one or two columns —
+ * confirmed with real computeContainerLayout

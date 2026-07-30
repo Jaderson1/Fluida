@@ -128,15 +128,17 @@ dd {
 }
 
 /*
- * Compact presentation mode: wide-but-limited-height viewports (TV
- * and desktop displays around 1280x720 up through 1920x1080) get a
- * denser layout so the whole demo fits on one screen without
- * scrolling. Deliberately scoped to min-width so it never applies to
- * phones — a tall, narrow viewport keeps the normal spacing and
- * normal document scrolling, which is the correct behavior there,
- * not something this rule should touch.
+ * Compact presentation mode: SHORT viewports only (roughly 720-780px
+ * tall — a 720p TV or a shallow laptop screen), not "anything up to
+ * 1080p". A 1080-tall viewport has 50% more vertical room than 720
+ * and does not need the same squeeze — treating them identically was
+ * the actual bug here, confirmed by checking which rule's height
+ * condition was wide enough to catch both. Deliberately scoped to
+ * min-width so it never applies to phones — a tall, narrow viewport
+ * keeps the normal spacing and normal document scrolling, which is
+ * the correct behavior there, not something this rule should touch.
  */
-@media (min-width: 900px) and (max-height: 1080px) {
+@media (min-width: 900px) and (max-height: 800px) {
   .breakpoint-banner {
     padding: 6px 10px;
     font-size: 0.85rem;
@@ -148,6 +150,7 @@ dd {
 
   header p {
     margin: 0 0 6px;
+    font-size: 0.85rem;
   }
 
   .viewport-note {
@@ -166,10 +169,6 @@ dd {
 
   dl {
     gap: 2px 12px;
-  }
-
-  .cell {
-    max-height: 44px;
   }
 
 }
@@ -233,13 +232,20 @@ dd {
  * min-height stops this matching typical laptop screens that are
  * wide but still short enough to need the tighter compact treatment
  * above. The container's own max-width comes from this demo's config
- * in App.tsx (two extra tiers past Core's default 1320px cap), not
- * from anything here.
+ * in App.tsx (extra tiers past Core's default 1320px cap, going all
+ * the way to a 3000px cap at 4K), not from anything here.
+ *
+ * grid-template-rows has four tracks, not three — .dashboard-shell
+ * has four direct children (header, .panels-row, .grid-section,
+ * .adaptive-panel), and a mismatched track count meant the fourth
+ * child fell into an implicit, unaccounted-for row instead of
+ * sharing the intended layout, which is what was actually leaving
+ * uneven empty space below the grid.
  */
 @media (min-width: 1200px) and (min-height: 650px) {
   .dashboard-shell {
     display: grid;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto 1fr auto;
     /* A floor, not a forced height: real content taller than this
        still grows the grid and scrolls normally — min-height never
        clips or hides anything. */
@@ -257,10 +263,13 @@ dd {
     margin-top: 0;
   }
 
-  .cell {
-    /* Scales with viewport height between a floor close to the
-       compact-mode value and a ceiling that keeps cells from
-       becoming disproportionately large on very tall displays. */
-    max-height: clamp(48px, 6dvh, 96px);
-  }
+  /*
+   * No max-height override here on purpose. .cell already declares
+   * aspect-ratio: 1 — an explicit max-height smaller than the grid's
+   * own computed column width overrides that ratio (max-height wins
+   * over aspect-ratio when the two conflict), which is what was
+   * actually flattening cells into short, wide rectangles instead of
+   * squares. Removing the override lets aspect-ratio size the cell
+   * purely from its real column width, at every resolution.
+   */
 }

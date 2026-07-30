@@ -14,7 +14,7 @@
     "pretypecheck": "pnpm --filter @fluida/core run build",
     "typecheck": "pnpm -r run typecheck",
     "pretest": "pnpm --filter @fluida/core run build",
-    "test": "pnpm -r run test",
+    "test": "pnpm -r run test", 
     "lint": "eslint .",
     "format": "prettier --write .",
     "demo:react": "pnpm --filter @fluida/react-demo dev",

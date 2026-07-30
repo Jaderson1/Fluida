@@ -25,7 +25,7 @@ interface ConformanceCase {
   readonly covers: readonly string[];
   readonly input: {
     readonly containerWidth: number;
-    readonly containerHeight: number;
+    readonly containerHeight: number | null;
     readonly options: ContainerLayoutOptions;
   };
   readonly expected: ContainerLayoutResult;
@@ -77,7 +77,7 @@ describe('layout conformance cases (spec/conformance/layout-cases.json)', () => 
   it.each(cases)('$id — $description', (testCase) => {
     const result = computeContainerLayout(
       testCase.input.containerWidth,
-      testCase.input.containerHeight,
+      testCase.input.containerHeight === null ? undefined : testCase.input.containerHeight,
       testCase.input.options,
     );
 

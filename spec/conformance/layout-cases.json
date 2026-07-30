@@ -261,6 +261,54 @@
         "cellWidth": 96,
         "cellHeight": 96
       }
+    },
+    {
+      "id": "auto-height-fit",
+      "description": "containerHeight omitted (null): fit chooses columns from width and minItemWidth alone, then squares the cell — same columns and cellWidth as the height-aware min-item-width-accounts-for-gap case above, confirming the two paths agree whenever both could apply.",
+      "covers": ["auto-height", "minItemWidth-with-gap"],
+      "input": {
+        "containerWidth": 1200,
+        "containerHeight": null,
+        "options": { "itemCount": 6, "gap": 16, "strategy": "fit", "minItemWidth": 280 }
+      },
+      "expected": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 288,
+        "cellHeight": 288
+      }
+    },
+    {
+      "id": "auto-height-preserve-ratio",
+      "description": "containerHeight omitted (null): preserve-ratio chooses the same columns as auto-height-fit (same width, gap, minItemWidth), then derives cellHeight from cellWidth and aspectRatio directly — never limited by a height that doesn't exist.",
+      "covers": ["auto-height", "preserve-ratio"],
+      "input": {
+        "containerWidth": 1200,
+        "containerHeight": null,
+        "options": { "itemCount": 6, "gap": 16, "strategy": "preserve-ratio", "aspectRatio": 2, "minItemWidth": 280 }
+      },
+      "expected": {
+        "columns": 4,
+        "rows": 2,
+        "cellWidth": 288,
+        "cellHeight": 144
+      }
+    },
+    {
+      "id": "auto-height-exact-boundary",
+      "description": "containerHeight omitted (null): a column count whose cellWidth lands exactly on minItemWidth (1000 / 5 columns, gap 0 = exactly 200) is accepted, not excluded — the boundary is inclusive.",
+      "covers": ["auto-height"],
+      "input": {
+        "containerWidth": 1000,
+        "containerHeight": null,
+        "options": { "itemCount": 5, "gap": 0, "strategy": "fit", "minItemWidth": 200 }
+      },
+      "expected": {
+        "columns": 5,
+        "rows": 1,
+        "cellWidth": 200,
+        "cellHeight": 200
+      }
     }
   ]
 }

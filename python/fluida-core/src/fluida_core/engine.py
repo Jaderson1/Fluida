@@ -77,9 +77,51 @@ def _find_best_filling_columns(
     return _Candidate(columns=1, rows=item_count, cell_width=0, cell_height=0)
 
 
+@dataclass(frozen=True)
+class _WidthOnlyColumns:
+    columns: int
+    rows: float
+    cell_width: float
+
+
+def _find_columns_by_width_only(
+    container_width: float,
+    item_count: float,
+    gap: float,
+    min_item_width: float,
+) -> _WidthOnlyColumns:
+    """Mirrors findColumnsByWidthOnly in computeContainerLayout.ts —
+    used only when container_height isn't known, where the
+    distortion-minimizing search in _find_best_filling_columns has
+    nothing to compare cell_width against, so min_item_width becomes
+    the sole basis for a column count instead.
+
+    Solved directly rather than searched: the inequality
+    (container_width - gap*(columns-1)) / columns >= min_item_width
+    rearranges to columns <= (container_width + gap) / (min_item_width + gap),
+    so the largest valid integer column count is the floor of that,
+    clamped to at least 0 and at most item_count. No loop needed —
+    this is a closed-form solution, not an approximation of one.
+    """
+    max_columns_for_width = math.floor((container_width + gap) / (min_item_width + gap))
+    columns = max(0, min(max_columns_for_width, math.floor(item_count)))
+
+    if columns < 1:
+        # Not even a single column reaches min_item_width at this
+        # width — the same honest "doesn't fit yet" answer
+        # _find_best_filling_columns gives in the equivalent
+        # situation, not a distinct error.
+        return _WidthOnlyColumns(columns=1, rows=item_count, cell_width=0)
+
+    rows = math.ceil(item_count / columns)
+    cell_width = (container_width - (columns - 1) * gap) / columns
+
+    return _WidthOnlyColumns(columns=columns, rows=rows, cell_width=cell_width)
+
+
 def compute_container_layout(
     container_width: float,
-    container_height: float,
+    container_height: Optional[float],
     item_count: int,
     strategy: LayoutStrategy = "fit",
     gap: float = _DEFAULT_GAP,
@@ -89,19 +131,31 @@ def compute_container_layout(
     """Compute a container layout — columns, rows, and cell size — from a
     real measured container size and a known item count.
 
+    container_height may be omitted (None) — auto-height mode — for
+    the 'fit' and 'preserve-ratio' strategies specifically, and only
+    when min_item_width is also set: without a known height, the usual
+    column search has nothing to weigh cell_width against, so
+    min_item_width becomes the sole basis for choosing how many
+    columns to use, and cell_height is then derived from cell_width
+    directly (equal to it, for fit; divided by aspect_ratio, for
+    preserve-ratio) — never limited by a height that was never given.
+    'fill' and 'balanced' cannot do this: both compute cell size
+    directly from container_height, with nothing to substitute, and
+    raise FluidaConfigError if it's omitted.
+
     Raises FluidaConfigError for a non-finite or out-of-range
     item_count, gap, aspect_ratio, or min_item_width — the exact same
     conditions @fluida/core's TypeScript implementation raises
     FluidaConfigError for, checked in the same order.
 
     An unrecognized strategy string is deliberately not validated at
-    runtime here: the TypeScript implementation doesn't validate it
-    either — its type system only enforces this at compile time — and
-    an unrecognized value falls through to the same fill-shaped
-    result in both implementations. Use LayoutStrategy's Literal type
-    with a static checker (mypy) to catch a typo before runtime
-    instead of relying on a runtime check that doesn't exist in either
-    implementation.
+    runtime here when container_height is known: the TypeScript
+    implementation doesn't validate it either — its type system only
+    enforces this at compile time — and an unrecognized value falls
+    through to the same fill-shaped result in both implementations.
+    When container_height is omitted, an unrecognized strategy is
+    rejected for the same reason 'fill' itself is — it defaults to
+    fill-shaped behavior, which auto-height cannot support.
     """
 
     if not math.isfinite(item_count) or item_count < 1:
@@ -125,6 +179,39 @@ def compute_container_layout(
         raise FluidaConfigError(
             "Fluida container layout: min_item_width must be a finite number "
             f"greater than 0, got {min_item_width}."
+        )
+
+    if container_height is None:
+        if strategy not in ("fit", "preserve-ratio"):
+            raise FluidaConfigError(
+                f"Fluida container layout: strategy '{strategy}' requires a known "
+                "container_height — only 'fit' and 'preserve-ratio' support "
+                "computing a layout without one."
+            )
+
+        if min_item_width is None:
+            raise FluidaConfigError(
+                "Fluida container layout: computing a layout without a known "
+                "container_height requires min_item_width — without either, "
+                "there is no basis for choosing a column count."
+            )
+
+        width_only = _find_columns_by_width_only(container_width, item_count, gap, min_item_width)
+
+        if width_only.cell_width <= 0:
+            return LayoutResult(width_only.columns, width_only.rows, 0, 0)
+
+        if strategy == "fit":
+            return LayoutResult(
+                width_only.columns, width_only.rows, width_only.cell_width, width_only.cell_width
+            )
+
+        # strategy == "preserve-ratio"
+        return LayoutResult(
+            width_only.columns,
+            width_only.rows,
+            width_only.cell_width,
+            width_only.cell_width / aspect_ratio,
         )
 
     base = _find_best_filling_columns(

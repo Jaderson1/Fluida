@@ -220,4 +220,155 @@ describe('computeContainerLayout', () => {
       expect(result.cellWidth / result.cellHeight).toBeCloseTo(2, 5);
     });
   });
+
+  describe('auto-height (containerHeight omitted)', () => {
+    it('throws FluidaConfigError for fill without a known height', () => {
+      expect(() =>
+        computeContainerLayout(1200, undefined, { itemCount: 6, strategy: 'fill' }),
+      ).toThrow(FluidaConfigError);
+    });
+
+    it('throws FluidaConfigError for balanced without a known height', () => {
+      expect(() =>
+        computeContainerLayout(1200, undefined, { itemCount: 6, strategy: 'balanced' }),
+      ).toThrow(FluidaConfigError);
+    });
+
+    it('throws FluidaConfigError for fit without a known height and without minItemWidth', () => {
+      expect(() =>
+        computeContainerLayout(1200, undefined, { itemCount: 6, strategy: 'fit' }),
+      ).toThrow(FluidaConfigError);
+    });
+
+    it('throws FluidaConfigError for preserve-ratio without a known height and without minItemWidth', () => {
+      expect(() =>
+        computeContainerLayout(1200, undefined, {
+          itemCount: 6,
+          strategy: 'preserve-ratio',
+          aspectRatio: 2,
+        }),
+      ).toThrow(FluidaConfigError);
+    });
+
+    it('fit without height, with minItemWidth: correct columns, square cells, independent of any external height', () => {
+      const result = computeContainerLayout(1200, undefined, {
+        itemCount: 6,
+        gap: 16,
+        strategy: 'fit',
+        minItemWidth: 280,
+      });
+
+      // Same columns/cellWidth as the height-aware conformance case
+      // for these exact numbers (1200, gap 16, minItemWidth 280,
+      // itemCount 6) — verified in spec/conformance/layout-cases.json
+      // — confirming the width-only path agrees with the height-aware
+      // one whenever both are applicable.
+      expect(result.columns).toBe(4);
+      expect(result.rows).toBe(2);
+      expect(result.cellWidth).toBe(288);
+      expect(result.cellHeight).toBe(result.cellWidth);
+    });
+
+    it('preserve-ratio without height, with minItemWidth: correct columns, exact aspect ratio', () => {
+      const result = computeContainerLayout(1200, undefined, {
+        itemCount: 6,
+        gap: 16,
+        strategy: 'preserve-ratio',
+        aspectRatio: 2,
+        minItemWidth: 280,
+      });
+
+      expect(result.columns).toBe(4);
+      expect(result.cellWidth).toBe(288);
+      expect(result.cellHeight).toBe(144);
+      expect(result.cellWidth / result.cellHeight).toBeCloseTo(2, 10);
+    });
+
+    it('never chooses more columns than itemCount, even when width would allow it', () => {
+      const result = computeContainerLayout(2000, undefined, {
+        itemCount: 3,
+        gap: 16,
+        strategy: 'fit',
+        minItemWidth: 100,
+      });
+
+      expect(result.columns).toBe(3);
+      expect(result.rows).toBe(1);
+    });
+
+    it('accepts a column count whose cellWidth equals minItemWidth exactly', () => {
+      // 1000 / 5 columns, gap 0 = exactly 200 per cell, no remainder.
+      const result = computeContainerLayout(1000, undefined, {
+        itemCount: 5,
+        gap: 0,
+        strategy: 'fit',
+        minItemWidth: 200,
+      });
+
+      expect(result.columns).toBe(5);
+      expect(result.cellWidth).toBe(200);
+    });
+
+    it('drops to one fewer column when width falls even slightly short of the threshold', () => {
+      // One pixel narrower than the exact-fit case above — 5 columns
+      // would need exactly 200 each; 999 no longer reaches that.
+      const result = computeContainerLayout(999, undefined, {
+        itemCount: 5,
+        gap: 0,
+        strategy: 'fit',
+        minItemWidth: 200,
+      });
+
+      expect(result.columns).toBe(4);
+      expect(result.cellWidth).toBeCloseTo(249.75, 5);
+    });
+
+    it('still validates itemCount the same way as the height-aware path', () => {
+      expect(() =>
+        computeContainerLayout(1200, undefined, {
+          itemCount: 0,
+          strategy: 'fit',
+          minItemWidth: 280,
+        }),
+      ).toThrow(FluidaConfigError);
+    });
+
+    it('computes correctly with a large gap', () => {
+      const result = computeContainerLayout(1200, undefined, {
+        itemCount: 4,
+        gap: 200,
+        strategy: 'fit',
+        minItemWidth: 100,
+      });
+
+      expect(result.columns).toBe(4);
+      expect(result.cellWidth).toBe(150);
+      expect(result.cellHeight).toBe(150);
+    });
+
+    it('still validates aspectRatio the same way as the height-aware path', () => {
+      expect(() =>
+        computeContainerLayout(1200, undefined, {
+          itemCount: 6,
+          strategy: 'preserve-ratio',
+          aspectRatio: 0,
+          minItemWidth: 100,
+        }),
+      ).toThrow(FluidaConfigError);
+    });
+
+    it('falls back to the same not-yet-fitting shape when minItemWidth is impossible at this width', () => {
+      const result = computeContainerLayout(100, undefined, {
+        itemCount: 4,
+        gap: 16,
+        strategy: 'fit',
+        minItemWidth: 10000,
+      });
+
+      expect(result.columns).toBe(1);
+      expect(result.rows).toBe(4);
+      expect(result.cellWidth).toBe(0);
+      expect(result.cellHeight).toBe(0);
+    });
+  });
 });

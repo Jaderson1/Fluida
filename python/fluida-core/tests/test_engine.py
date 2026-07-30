@@ -4,7 +4,8 @@ separately in test_conformance.py)."""
 
 import math
 
-from fluida_core import compute_container_layout
+import pytest
+from fluida_core import FluidaConfigError, compute_container_layout
 
 
 def test_defaults_match_fit_gap_16_aspect_ratio_1():
@@ -147,3 +148,109 @@ def test_unrecognized_strategy_falls_back_to_fill_shaped_result_without_raising(
         800, 600, item_count=8, strategy="not-a-real-strategy"  # type: ignore[arg-type]
     )
     assert unrecognized_result == fill_result
+
+
+class TestAutoHeight:
+    """container_height omitted (None)."""
+
+    def test_fill_without_height_raises(self):
+        with pytest.raises(FluidaConfigError):
+            compute_container_layout(1200, None, item_count=6, strategy="fill")
+
+    def test_balanced_without_height_raises(self):
+        with pytest.raises(FluidaConfigError):
+            compute_container_layout(1200, None, item_count=6, strategy="balanced")
+
+    def test_fit_without_height_and_without_min_item_width_raises(self):
+        with pytest.raises(FluidaConfigError):
+            compute_container_layout(1200, None, item_count=6, strategy="fit")
+
+    def test_preserve_ratio_without_height_and_without_min_item_width_raises(self):
+        with pytest.raises(FluidaConfigError):
+            compute_container_layout(
+                1200, None, item_count=6, strategy="preserve-ratio", aspect_ratio=2
+            )
+
+    def test_fit_without_height_with_min_item_width(self):
+        # Same columns/cell_width as the height-aware
+        # min-item-width-accounts-for-gap conformance case for these
+        # exact numbers — confirming the width-only path agrees with
+        # the height-aware one whenever both are applicable.
+        result = compute_container_layout(
+            1200, None, item_count=6, gap=16, strategy="fit", min_item_width=280
+        )
+        assert result.columns == 4
+        assert result.rows == 2
+        assert result.cell_width == 288
+        assert result.cell_height == result.cell_width
+
+    def test_preserve_ratio_without_height_with_min_item_width(self):
+        result = compute_container_layout(
+            1200,
+            None,
+            item_count=6,
+            gap=16,
+            strategy="preserve-ratio",
+            aspect_ratio=2,
+            min_item_width=280,
+        )
+        assert result.columns == 4
+        assert result.cell_width == 288
+        assert result.cell_height == 144
+        assert math.isclose(result.cell_width / result.cell_height, 2, abs_tol=1e-10)
+
+    def test_never_exceeds_item_count(self):
+        result = compute_container_layout(
+            2000, None, item_count=3, gap=16, strategy="fit", min_item_width=100
+        )
+        assert result.columns == 3
+        assert result.rows == 1
+
+    def test_accepts_cell_width_exactly_equal_to_min_item_width(self):
+        # 1000 / 5 columns, gap 0 = exactly 200 per cell, no remainder.
+        result = compute_container_layout(
+            1000, None, item_count=5, gap=0, strategy="fit", min_item_width=200
+        )
+        assert result.columns == 5
+        assert result.cell_width == 200
+
+    def test_drops_one_column_just_below_the_threshold(self):
+        result = compute_container_layout(
+            999, None, item_count=5, gap=0, strategy="fit", min_item_width=200
+        )
+        assert result.columns == 4
+        assert math.isclose(result.cell_width, 249.75, abs_tol=1e-5)
+
+    def test_still_validates_item_count(self):
+        with pytest.raises(FluidaConfigError):
+            compute_container_layout(
+                1200, None, item_count=0, strategy="fit", min_item_width=280
+            )
+
+    def test_large_gap(self):
+        result = compute_container_layout(
+            1200, None, item_count=4, gap=200, strategy="fit", min_item_width=100
+        )
+        assert result.columns == 4
+        assert result.cell_width == 150
+        assert result.cell_height == 150
+
+    def test_still_validates_aspect_ratio(self):
+        with pytest.raises(FluidaConfigError):
+            compute_container_layout(
+                1200,
+                None,
+                item_count=6,
+                strategy="preserve-ratio",
+                aspect_ratio=0,
+                min_item_width=100,
+            )
+
+    def test_falls_back_when_min_item_width_impossible_at_this_width(self):
+        result = compute_container_layout(
+            100, None, item_count=4, gap=16, strategy="fit", min_item_width=10000
+        )
+        assert result.columns == 1
+        assert result.rows == 4
+        assert result.cell_width == 0
+        assert result.cell_height == 0

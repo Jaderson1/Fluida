@@ -13,19 +13,29 @@ import { useFluidaContainerSize } from './useFluidaContainerSize';
  * ContainerLayoutResult for it, given a known item count and
  * strategy. Does not require <FluidaProvider> — this is a fully
  * standalone hook, independent from the viewport-based system.
+ *
+ * autoHeight, when true, still measures the element's height via
+ * useFluidaContainerSize (nothing about the measuring itself changes)
+ * but never passes that measured height to computeContainerLayout —
+ * undefined is passed instead, requesting the Core's own auto-height
+ * mode (only valid for 'fit'/'preserve-ratio' with minItemWidth set;
+ * see computeContainerLayout's own documentation for why). The
+ * measured height is simply unused in that case, not fed back in.
  */
 export function useFluidaContainerLayout<T extends Element>(
   ref: RefObject<T | null>,
   options: ContainerLayoutOptions,
+  autoHeight = false,
 ): ContainerLayoutResult {
   const size = useFluidaContainerSize(ref);
 
   return useMemo(
-    () => computeContainerLayout(size.width, size.height, options),
+    () => computeContainerLayout(size.width, autoHeight ? undefined : size.height, options),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       size.width,
       size.height,
+      autoHeight,
       options.itemCount,
       options.strategy,
       options.gap,

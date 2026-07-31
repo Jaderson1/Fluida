@@ -44,6 +44,22 @@ export interface FluidaAdaptiveGridProps extends ComponentPropsWithoutRef<'div'>
   readonly aspectRatio?: number;
   /** When set, column counts whose resulting cell would be narrower than this are excluded from consideration entirely. Undefined (the default) applies no such constraint. */
   readonly minItemWidth?: number;
+  /**
+   * When true, this grid's own measured height is never fed back into
+   * the layout computation — Core computes cellHeight (and this
+   * component then applies an explicit height, rows * cellHeight +
+   * (rows-1) * gap) purely from the measured width, minItemWidth, and
+   * strategy, instead of the height happening to already have
+   * whatever value it does (the 200px floor below, most commonly, on
+   * a container whose height nothing else determines). Only
+   * 'fit' + minItemWidth and 'preserve-ratio' + minItemWidth support
+   * this — 'fill' and 'balanced' need a real known height to mean
+   * anything, and throw the same FluidaConfigError Core itself raises
+   * for that combination, exactly like any other invalid
+   * configuration already does in this component. Defaults to false:
+   * existing behavior is entirely unchanged unless this is set.
+   */
+  readonly autoHeight?: boolean;
 }
 
 /**
@@ -80,7 +96,7 @@ export interface FluidaAdaptiveGridProps extends ComponentPropsWithoutRef<'div'>
  */
 export const FluidaAdaptiveGrid = forwardRef<HTMLDivElement, FluidaAdaptiveGridProps>(
   function FluidaAdaptiveGrid(
-    { itemCount, strategy, gap, aspectRatio, minItemWidth, style, children, ...rest },
+    { itemCount, strategy, gap, aspectRatio, minItemWidth, autoHeight = false, style, children, ...rest },
     forwardedRef,
   ) {
     const internalRef = useRef<HTMLDivElement | null>(null);
@@ -93,7 +109,7 @@ export const FluidaAdaptiveGrid = forwardRef<HTMLDivElement, FluidaAdaptiveGridP
       minItemWidth,
     };
 
-    const layout = useFluidaContainerLayout(internalRef, options);
+    const layout = useFluidaContainerLayout(internalRef, options, autoHeight);
 
     const isDevelopment =
       (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process
@@ -116,15 +132,33 @@ export const FluidaAdaptiveGrid = forwardRef<HTMLDivElement, FluidaAdaptiveGridP
       }
     }
 
+    // totalHeight is deliberately computed here, in the adapter, and
+    // not returned by Core itself: it's one line of arithmetic from
+    // fields Core already produces (rows, cellHeight) plus a value
+    // this component already has (gap) — adding it to Core's own
+    // return type would have meant every existing exact-equality test
+    // asserting {columns, rows, cellWidth, cellHeight} against Core's
+    // output would need updating for no functional gain.
+    const resolvedGap = gap ?? 16;
+    const totalHeight = layout.rows * layout.cellHeight + (layout.rows - 1) * resolvedGap;
+
     const gridStyle: CSSProperties = {
       display: 'grid',
       gridTemplateColumns: `repeat(${layout.columns}, ${layout.cellWidth}px)`,
       gridAutoRows: `${layout.cellHeight}px`,
-      gap: gap ?? 16,
+      gap: resolvedGap,
       justifyContent: 'center',
       alignContent: 'center',
       width: '100%',
-      minHeight: DEFAULT_MIN_HEIGHT,
+      // autoHeight applies the computed height explicitly instead of
+      // the 200px floor below: the floor exists to prevent the
+      // height:100%-against-a-heightless-parent deadlock documented
+      // above, but that deadlock is specifically about not knowing
+      // the height at all — autoHeight means Core just told us
+      // exactly what it should be, so trusting that computed value,
+      // even when it's small, is correct here instead of second-
+      // guessing it with an unrelated floor.
+      ...(autoHeight ? { height: totalHeight } : { minHeight: DEFAULT_MIN_HEIGHT }),
       boxSizing: 'border-box',
       ...style,
     };

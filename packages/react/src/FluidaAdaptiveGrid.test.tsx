@@ -438,4 +438,232 @@ describe('itemCount vs. rendered children (development warning)', () => {
       );
     }).not.toThrow();
   });
+
+  describe('autoHeight', () => {
+    it('keeps existing behavior exactly when autoHeight is absent', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+
+      const { getByTestId } = render(
+        <FluidaAdaptiveGrid itemCount={4} strategy="fit" gap={0} data-testid="grid">
+          <span>1</span>
+          <span>2</span>
+          <span>3</span>
+          <span>4</span>
+        </FluidaAdaptiveGrid>,
+      );
+
+      const element = getByTestId('grid');
+      const observer = getLiveObserverFor(element);
+
+      act(() => {
+        observer?.trigger(400, 100);
+        vi.runAllTimers();
+      });
+
+      // Same values @fluida/react has always produced here — the
+      // 200px minHeight floor, not an explicit computed height.
+      expect(element.style.minHeight).toBe('200px');
+      expect(element.style.height).toBe('');
+      expect(element.style.gridTemplateColumns).toBe('repeat(4, 100px)');
+
+      vi.useRealTimers();
+    });
+
+    it('when true, computes a layout independent of the measured height, and applies an explicit height', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+
+      const { getByTestId } = render(
+        <FluidaAdaptiveGrid
+          itemCount={6}
+          gap={16}
+          strategy="fit"
+          minItemWidth={280}
+          autoHeight
+          data-testid="grid"
+        >
+          {Array.from({ length: 6 }, (_, i) => (
+            <span key={i}>{i}</span>
+          ))}
+        </FluidaAdaptiveGrid>,
+      );
+
+      const element = getByTestId('grid');
+      const observer = getLiveObserverFor(element);
+
+      // Height reported by the observer is deliberately something the
+      // layout should NOT depend on at all in autoHeight mode — an
+      // absurdly small height, to make it obvious if it were still
+      // being used.
+      act(() => {
+        observer?.trigger(1200, 1);
+        vi.runAllTimers();
+      });
+
+      // Same columns/cellWidth as the Core-level auto-height test for
+      // these exact numbers (1200 width, gap 16, minItemWidth 280,
+      // itemCount 6) — verified there directly against
+      // computeContainerLayout.
+      expect(element.style.gridTemplateColumns).toBe('repeat(4, 288px)');
+      expect(element.style.gridAutoRows).toBe('288px');
+
+      // rows(2) * cellHeight(288) + (rows-1)(1) * gap(16) = 592 —
+      // computed locally by the component, applied as an explicit
+      // height, not left to the 200px floor.
+      expect(element.style.height).toBe('592px');
+      expect(element.style.minHeight).toBe('');
+
+      vi.useRealTimers();
+    });
+
+    it('recomputes after a width change, still ignoring measured height', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+
+      const { getByTestId } = render(
+        <FluidaAdaptiveGrid
+          itemCount={6}
+          gap={16}
+          strategy="fit"
+          minItemWidth={280}
+          autoHeight
+          data-testid="grid"
+        >
+          {Array.from({ length: 6 }, (_, i) => (
+            <span key={i}>{i}</span>
+          ))}
+        </FluidaAdaptiveGrid>,
+      );
+
+      const element = getByTestId('grid');
+      const observer = getLiveObserverFor(element);
+
+      act(() => {
+        observer?.trigger(1200, 1);
+        vi.runAllTimers();
+      });
+      const columnsBefore = element.style.gridTemplateColumns;
+
+      act(() => {
+        observer?.trigger(2000, 1);
+        vi.runAllTimers();
+      });
+      const columnsAfter = element.style.gridTemplateColumns;
+
+      expect(columnsAfter).not.toBe(columnsBefore);
+
+      vi.useRealTimers();
+    });
+
+    it('does not create a ResizeObserver notification loop — settles after one update per real resize', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+      const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame');
+
+      const { getByTestId } = render(
+        <FluidaAdaptiveGrid
+          itemCount={6}
+          gap={16}
+          strategy="fit"
+          minItemWidth={280}
+          autoHeight
+          data-testid="grid"
+        >
+          {Array.from({ length: 6 }, (_, i) => (
+            <span key={i}>{i}</span>
+          ))}
+        </FluidaAdaptiveGrid>,
+      );
+
+      const element = getByTestId('grid');
+      const observer = getLiveObserverFor(element);
+
+      act(() => {
+        observer?.trigger(1200, 1);
+        vi.runAllTimers();
+      });
+
+      const callsAfterFirstResize = rafSpy.mock.calls.length;
+
+      // Advancing timers further, with no further real resize, must
+      // not schedule any more frames — applying the computed height
+      // via style does not itself trigger the component's own
+      // ResizeObserver into observing itself, since height is applied
+      // as an explicit style value, not left for the browser to
+      // report back as a "new" measurement requiring recomputation.
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(rafSpy.mock.calls.length).toBe(callsAfterFirstResize);
+
+      rafSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    it('throws the same FluidaConfigError as Core for fill + autoHeight', () => {
+      installMockResizeObserver();
+
+      // Validation happens before any column-selection logic, so this
+      // throws on the very first render — the measured size (0x0
+      // initially) never even factors in.
+      expect(() => {
+        render(
+          <FluidaAdaptiveGrid
+            itemCount={6}
+            strategy="fill"
+            minItemWidth={280}
+            autoHeight
+            data-testid="grid"
+          >
+            {Array.from({ length: 6 }, (_, i) => (
+              <span key={i}>{i}</span>
+            ))}
+          </FluidaAdaptiveGrid>,
+        );
+      }).toThrow();
+    });
+
+    it('throws the same FluidaConfigError as Core for fit + autoHeight without minItemWidth', () => {
+      installMockResizeObserver();
+
+      expect(() => {
+        render(
+          <FluidaAdaptiveGrid itemCount={6} strategy="fit" autoHeight data-testid="grid">
+            {Array.from({ length: 6 }, (_, i) => (
+              <span key={i}>{i}</span>
+            ))}
+          </FluidaAdaptiveGrid>,
+        );
+      }).toThrow();
+    });
+
+    it('cleanup still disconnects the observer correctly with autoHeight active', () => {
+      installMockResizeObserver();
+
+      const { getByTestId, unmount } = render(
+        <FluidaAdaptiveGrid
+          itemCount={6}
+          gap={16}
+          strategy="fit"
+          minItemWidth={280}
+          autoHeight
+          data-testid="grid"
+        >
+          {Array.from({ length: 6 }, (_, i) => (
+            <span key={i}>{i}</span>
+          ))}
+        </FluidaAdaptiveGrid>,
+      );
+
+      const element = getByTestId('grid');
+      const observer = getLiveObserverFor(element);
+      expect(observer).toBeDefined();
+
+      unmount();
+
+      expect(observer?.disconnected).toBe(true);
+    });
+  });
 });

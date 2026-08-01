@@ -20,11 +20,7 @@ body {
     sans-serif;
 }
 
-/*
- * Width-cap ladder — the Dash-side equivalent of the React demo's
- * container.tiers config. Mirrors the React demo's own tiers so both
- * demos grow at comparable points.
- */
+/* Width-cap ladder for the page shell, purely a viewport concern. */
 .dash-shell {
   margin: 0 auto;
   padding: 12px 16px;
@@ -127,13 +123,7 @@ header p {
 
 /* --- min_item_width comparison --- */
 
-/*
- * Stacked (one column above the other) below 900px of available panel
- * width — at that width, splitting it in half is exactly what was
- * pushing min_item_width to force the grid down to a single column in
- * the first place. Side by side once there's enough room that halving
- * it still leaves each grid a reasonable width.
- */
+/* Stacked below 900px so each grid keeps a reasonable own width. */
 .compare-row {
   display: flex;
   flex-direction: column;
@@ -167,15 +157,112 @@ header p {
   letter-spacing: 0.02em;
 }
 
+/* Base grid safety: never wider than its container, always free to shrink. */
 .grid {
-  transition: grid-template-columns 0.15s ease;
+  width: 100%;
+  min-width: 0;
 }
 
-/*
- * The real fix for the "tiny green dots" bug: FluidaGrid's own
- * container div has an internal minHeight: 200px floor and no
- * ceiling (inside FluidaGrid.tsx — not touched here). Without an
- * explicit height of its own, a narrow, many-row grid measured itself
- * against that flat 200px floor, producing a handful of pixels per
- * row once min_item_width forced it down to one or two columns —
- * confirmed with real computeContainerLayout
+.cell {
+  background: #3b4ccf;
+  color: #ffffff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+#grid-constrained .cell {
+  background: #2e933c;
+}
+
+/* --- responsive charts --- */
+
+.charts-section {
+  min-width: 0;
+}
+
+/* Own, tighter width cap than the page shell — keeps 4K from turning
+   every card into an oversized panel, independent of FluidaGrid. */
+.charts-panel {
+  max-width: 2000px;
+  margin: 0 auto;
+}
+
+.charts-grid {
+  min-width: 0;
+}
+
+/* min-width/min-height: 0 let the card actually shrink to the grid's
+   computed cell size instead of the chart's own intrinsic minimum. */
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: #fafafa;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.chart-card-title {
+  flex: 0 0 auto;
+  padding: 6px 10px 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.chart-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.chart-card-body .js-plotly-plot,
+.chart-card-body .plot-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Compact mode: short viewports only (~720-780px tall), not "up to 1080p". */
+@media (min-width: 900px) and (max-height: 800px) {
+  .dash-shell {
+    padding-top: 12px;
+    padding-bottom: 16px;
+  }
+
+  header h1 {
+    margin-bottom: 2px;
+    font-size: 1.25rem;
+  }
+
+  header p {
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+  }
+
+  .panel {
+    padding: 10px 14px;
+    margin-top: 10px;
+  }
+
+  .panel h2 {
+    margin-bottom: 4px;
+  }
+
+  .panel-note {
+    margin-bottom: 8px;
+  }
+}
+
+@media (pointer: coarse) {
+  .chart-card-title {
+    padding: 8px 12px 4px;
+    font-size: 0.8rem;
+  }
+}

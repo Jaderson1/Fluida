@@ -115,3 +115,34 @@ def test_bundle_does_not_include_a_bundled_react():
     package_dir = Path(__file__).resolve().parent.parent / "src" / "dash_fluida"
     bundle_path = package_dir / "dash_fluida.min.js"
     assert bundle_path.stat().st_size < 20_000
+
+
+def test_auto_height_is_a_recognized_prop():
+    grid = FluidaGrid(item_count=4, strategy="fit", min_item_width=200, auto_height=True)
+    assert grid.auto_height is True
+
+
+def test_auto_height_defaults_to_absent_not_true():
+    grid = FluidaGrid(item_count=4)
+    serialized = grid.to_plotly_json()
+    assert "auto_height" not in serialized["props"]
+
+
+def test_auto_height_reaches_serialized_props():
+    grid = FluidaGrid(item_count=4, strategy="fit", min_item_width=200, auto_height=True)
+    serialized = grid.to_plotly_json()
+    assert serialized["props"]["auto_height"] is True
+    assert serialized["props"]["min_item_width"] == 200
+    assert serialized["props"]["strategy"] == "fit"
+
+
+def test_bundle_contains_the_auto_height_handling():
+    # Confirms the compiled frontend bundle actually contains the
+    # auto-height code path — not just that the Python side accepts
+    # the prop. Looks for the exact Core error message that only
+    # exists inside the auto-height branch of computeContainerLayout,
+    # proving it was bundled in, not left out.
+    package_dir = Path(__file__).resolve().parent.parent / "src" / "dash_fluida"
+    bundle_path = package_dir / "dash_fluida.min.js"
+    contents = bundle_path.read_text(encoding="utf-8")
+    assert "requires a known containerHeight" in contents

@@ -70,6 +70,18 @@ class FluidaGrid(Component):
         per animation frame. When False (the default), nothing about
         resize is ever sent to the server.
 
+    - auto_height (boolean; default False):
+        When True, this grid's own measured height is never fed back
+        into the layout computation — the frontend computes cellHeight
+        purely from the measured width, min_item_width, and strategy,
+        and applies an explicit total height instead of a fixed 200px
+        floor. Only works with strategy="fit" or strategy="preserve-ratio",
+        and only when min_item_width is also set — "fill" and
+        "balanced" raise the same error @fluida/core itself raises for
+        that combination, since both need a real known height to mean
+        anything. Defaults to False: existing behavior is unchanged
+        unless this is set.
+
     - columns (number; optional):
         The computed column count. Only meaningfully populated if
         notify_layout_changes is True — read-only in practice, not
@@ -115,6 +127,7 @@ class FluidaGrid(Component):
         style: typing.Optional[dict] = None,
         className: typing.Optional[str] = None,
         notify_layout_changes: typing.Optional[bool] = None,
+        auto_height: typing.Optional[bool] = None,
         columns: typing.Optional[int] = None,
         rows: typing.Optional[int] = None,
         cellWidth: typing.Optional[float] = None,
@@ -132,6 +145,7 @@ class FluidaGrid(Component):
             "style",
             "className",
             "notify_layout_changes",
+            "auto_height",
             "columns",
             "rows",
             "cellWidth",

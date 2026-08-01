@@ -45,6 +45,18 @@ export interface FluidaGridProps {
    * rendering.
    */
   readonly notify_layout_changes?: boolean;
+  /**
+   * When true, this grid's own measured height is never fed back into
+   * the layout computation — @fluida/core computes cellHeight purely
+   * from the measured width, min_item_width, and strategy, and this
+   * component then applies an explicit height (rows * cellHeight +
+   * (rows-1) * gap) instead of the 200px floor below. Only
+   * strategy="fit"/min_item_width and strategy="preserve-ratio"/
+   * min_item_width support this; "fill" and "balanced" raise the same
+   * FluidaConfigError @fluida/core itself raises for that combination.
+   * Defaults to False: existing behavior is unchanged unless set.
+   */
+  readonly auto_height?: boolean;
   /** Provided by the Dash renderer itself. */
   readonly setProps?: (nextProps: Record<string, unknown>) => void;
 }
@@ -61,6 +73,7 @@ export default function FluidaGrid(props: FluidaGridProps) {
     style,
     className,
     notify_layout_changes = false,
+    auto_height = false,
     setProps,
   } = props;
 
@@ -87,8 +100,11 @@ export default function FluidaGrid(props: FluidaGridProps) {
     const applyMeasurement = (width: number, height: number): void => {
       pendingFrameId = null;
       // computeContainerLayout from @fluida/core — never
-      // reimplemented here.
-      const nextLayout = computeContainerLayout(width, height, options);
+      // reimplemented here. auto_height passes undefined for height
+      // regardless of what was actually measured — the measured
+      // height is simply unused in that case, requesting Core's own
+      // auto-height mode instead of feeding a height back in.
+      const nextLayout = computeContainerLayout(width, auto_height ? undefined : height, options);
       setLayout(nextLayout);
 
       if (notify_layout_changes && setProps) {
@@ -133,7 +149,15 @@ export default function FluidaGrid(props: FluidaGridProps) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item_count, strategy, gap, aspect_ratio, min_item_width, notify_layout_changes, setProps]);
+  }, [item_count, strategy, gap, aspect_ratio, min_item_width, notify_layout_changes, auto_height, setProps]);
+
+  // totalHeight is computed here, in the component, not returned by
+  // @fluida/core itself — one line of arithmetic from fields Core
+  // already produces (rows, cellHeight) plus a value already in
+  // scope (gap), matching the same decision made in @fluida/react's
+  // FluidaAdaptiveGrid.
+  const resolvedGap = gap;
+  const totalHeight = layout.rows * layout.cellHeight + (layout.rows - 1) * resolvedGap;
 
   const gridStyle: CSSProperties = {
     display: 'grid',
@@ -143,7 +167,10 @@ export default function FluidaGrid(props: FluidaGridProps) {
     justifyContent: 'center',
     alignContent: 'center',
     width: '100%',
-    minHeight: DEFAULT_MIN_HEIGHT,
+    // auto_height applies the computed height explicitly instead of
+    // the 200px floor below — see FluidaAdaptiveGrid's own comment
+    // on the equivalent decision for the full reasoning.
+    ...(auto_height ? { height: totalHeight } : { minHeight: DEFAULT_MIN_HEIGHT }),
     boxSizing: 'border-box',
     ...style,
   };
@@ -166,5 +193,6 @@ FluidaGrid.propTypes = {
   style: PropTypes.object,
   className: PropTypes.string,
   notify_layout_changes: PropTypes.bool,
+  auto_height: PropTypes.bool,
   setProps: PropTypes.func,
 };

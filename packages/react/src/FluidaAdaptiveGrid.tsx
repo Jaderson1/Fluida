@@ -1,7 +1,4 @@
-import type {
-  ContainerLayoutOptions,
-  ContainerLayoutStrategy,
-} from '@fluida/core';
+import type { ContainerLayoutOptions, ContainerLayoutStrategy } from '@fluida/core';
 import type {
   ComponentPropsWithoutRef,
   CSSProperties,
@@ -9,7 +6,7 @@ import type {
   Ref,
   RefCallback,
 } from 'react';
-import { Children, forwardRef, useRef } from 'react';
+import { Children, forwardRef, useEffect, useRef } from 'react';
 
 import { useFluidaContainerLayout } from './useFluidaContainerLayout';
 
@@ -69,10 +66,9 @@ export interface FluidaAdaptiveGridProps extends ComponentPropsWithoutRef<'div'>
  * primitives: there is no shared state to gain from requiring one.
  *
  * Cell size is applied as explicit pixel dimensions, not
- * minmax(0, 1fr): the whole point of this component is that it
- * already computed the specific size that best uses the real
- * measured space for the real item count, so letting the grid
- * renegotiate that with 1fr would undo the computation. As with
+ * minmax(0, 1fr): this component computes the specific size that
+ * best uses the real measured space for the real item count, and
+ * letting the grid renegotiate that with 1fr would undo it. As with
  * FluidaGrid, this does not force line-wrapping inside a cell's own
  * content — that choice stays with whatever you render inside.
  *
@@ -96,7 +92,17 @@ export interface FluidaAdaptiveGridProps extends ComponentPropsWithoutRef<'div'>
  */
 export const FluidaAdaptiveGrid = forwardRef<HTMLDivElement, FluidaAdaptiveGridProps>(
   function FluidaAdaptiveGrid(
-    { itemCount, strategy, gap, aspectRatio, minItemWidth, autoHeight = false, style, children, ...rest },
+    {
+      itemCount,
+      strategy,
+      gap,
+      aspectRatio,
+      minItemWidth,
+      autoHeight = false,
+      style,
+      children,
+      ...rest
+    },
     forwardedRef,
   ) {
     const internalRef = useRef<HTMLDivElement | null>(null);
@@ -112,25 +118,32 @@ export const FluidaAdaptiveGrid = forwardRef<HTMLDivElement, FluidaAdaptiveGridP
     const layout = useFluidaContainerLayout(internalRef, options, autoHeight);
 
     const isDevelopment =
-      (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process
-        ?.env?.NODE_ENV !== 'production';
+      (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV !==
+      'production';
 
-    if (isDevelopment) {
-      // A development-only signal, not a hard validation: React.Children.count()
-      // counts top-level children and does not descend into fragments, so a
-      // consumer grouping some children in a <>...</> could see a mismatch here
-      // that isn't actually one. Intentionally not thrown as an error in any
-      // environment — a wrong itemCount produces a visually wrong grid, not a
-      // crash, and should stay that way.
-      const renderedChildCount = Children.count(children);
-      if (renderedChildCount !== itemCount) {
-        console.warn(
-          `Fluida: <FluidaAdaptiveGrid itemCount={${itemCount}}> was given ${renderedChildCount} child element(s). ` +
-            'The grid is sized for itemCount, not for however many children are actually rendered — ' +
-            'if these differ, update itemCount to match, or check that children wrapped in a fragment aren\'t throwing this off.',
-        );
-      }
-    }
+    const renderedChildCount = Children.count(children);
+    const lastWarnedMismatchRef = useRef<string | null>(null);
+
+    useEffect(() => {
+      // React.Children.count() counts top-level children and does not
+      // descend into fragments, so a consumer grouping children in a
+      // <>...</> could see a mismatch here that isn't actually one.
+      // Not a hard validation: a wrong itemCount produces a visually
+      // wrong grid, not a crash. Deduplicated by the specific
+      // itemCount/childCount pair so Strict Mode's double-invocation
+      // doesn't log it twice for the same mismatch.
+      if (!isDevelopment || renderedChildCount === itemCount) return;
+
+      const mismatchKey = `${itemCount}:${renderedChildCount}`;
+      if (lastWarnedMismatchRef.current === mismatchKey) return;
+      lastWarnedMismatchRef.current = mismatchKey;
+
+      console.warn(
+        `Fluida: <FluidaAdaptiveGrid itemCount={${itemCount}}> was given ${renderedChildCount} child element(s). ` +
+          'The grid is sized for itemCount, not for however many children are actually rendered — ' +
+          "if these differ, update itemCount to match, or check that children wrapped in a fragment aren't throwing this off.",
+      );
+    }, [isDevelopment, itemCount, renderedChildCount]);
 
     // totalHeight is deliberately computed here, in the adapter, and
     // not returned by Core itself: it's one line of arithmetic from
@@ -164,11 +177,7 @@ export const FluidaAdaptiveGrid = forwardRef<HTMLDivElement, FluidaAdaptiveGridP
     };
 
     return (
-      <div
-        ref={mergeRefs(internalRef, forwardedRef)}
-        style={gridStyle}
-        {...rest}
-      >
+      <div ref={mergeRefs(internalRef, forwardedRef)} style={gridStyle} {...rest}>
         {children}
       </div>
     );

@@ -1,22 +1,28 @@
 {
   "name": "dash-fluida-frontend",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Frontend build for the dash-fluida Dash component — not published to npm; the Python package (fluida_dash) is what gets distributed, with this bundle copied inside it.",
   "type": "module",
   "scripts": {
     "build": "tsup && node scripts/copy-bundle.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fluida/core": "workspace:*"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
     "@types/prop-types": "^15.7.15",
     "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "jsdom": "^29.1.1",
     "prop-types": "^15.8.1",
     "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "tsup": "^8.5.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

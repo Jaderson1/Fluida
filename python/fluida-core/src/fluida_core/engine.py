@@ -18,6 +18,19 @@ from .models import FluidaConfigError, LayoutResult, LayoutStrategy
 
 _DEFAULT_GAP = 16
 _DEFAULT_ASPECT_RATIO = 1
+_VALID_STRATEGIES = ("fill", "fit", "balanced", "preserve-ratio")
+
+
+def _is_positive_integer(value: object) -> bool:
+    """bool is an int subclass in Python — excluded explicitly, since
+    item_count is a discrete quantity, not a flag."""
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return value >= 1
+    if isinstance(value, float):
+        return math.isfinite(value) and value.is_integer() and value >= 1
+    return False
 
 
 @dataclass(frozen=True)
@@ -31,26 +44,19 @@ class _Candidate:
 def _find_best_filling_columns(
     container_width: float,
     container_height: float,
-    item_count: float,
+    item_count: int,
     gap: float,
     min_item_width: Optional[float],
 ) -> _Candidate:
-    """Mirrors findBestFillingColumns in computeContainerLayout.ts: for
-    each column count from 1 up to item_count, computes the cell size
-    that fills the space exactly, discards candidates that don't fit
-    or don't meet min_item_width, and keeps whichever surviving
+    """For each column count from 1 up to item_count, computes the cell
+    size that fills the space exactly, discards candidates that don't
+    fit or don't meet min_item_width, and keeps whichever surviving
     candidate has the least width/height distortion.
-
-    Falls back to a single column at zero size if nothing qualifies —
-    including the same literal (not rounded) use of item_count for
-    rows that the TypeScript implementation has in this exact spot,
-    rather than a value derived independently.
     """
     best: Optional[_Candidate] = None
     best_score = math.inf
 
-    max_columns = math.floor(item_count)
-    for columns in range(1, max_columns + 1):
+    for columns in range(1, item_count + 1):
         rows = math.ceil(item_count / columns)
 
         cell_width = (container_width - (columns - 1) * gap) / columns
@@ -70,53 +76,61 @@ def _find_best_filling_columns(
         return best
 
     # No candidate produced a positive size, or none met
-    # min_item_width — either way, a single column at zero size is
-    # the honest answer: not wrong, just not something that currently
-    # fits. Note item_count is used here as-is, unrounded, exactly as
-    # the TypeScript implementation does in this same spot.
+    # min_item_width — one column at zero size, matching the state
+    # before any real measurement exists.
     return _Candidate(columns=1, rows=item_count, cell_width=0, cell_height=0)
 
 
 @dataclass(frozen=True)
 class _WidthOnlyColumns:
     columns: int
-    rows: float
+    rows: int
     cell_width: float
 
 
 def _find_columns_by_width_only(
     container_width: float,
-    item_count: float,
+    item_count: int,
     gap: float,
     min_item_width: float,
 ) -> _WidthOnlyColumns:
-    """Mirrors findColumnsByWidthOnly in computeContainerLayout.ts —
-    used only when container_height isn't known, where the
-    distortion-minimizing search in _find_best_filling_columns has
-    nothing to compare cell_width against, so min_item_width becomes
-    the sole basis for a column count instead.
+    """Used only when container_height isn't known, where the
+    distortion-minimizing search above has nothing to compare
+    cell_width against, so min_item_width becomes the sole basis for a
+    column count.
 
-    Solved directly rather than searched: the inequality
-    (container_width - gap*(columns-1)) / columns >= min_item_width
-    rearranges to columns <= (container_width + gap) / (min_item_width + gap),
-    so the largest valid integer column count is the floor of that,
-    clamped to at least 0 and at most item_count. No loop needed —
-    this is a closed-form solution, not an approximation of one.
+    Solved directly: (container_width - gap*(columns-1)) / columns >=
+    min_item_width rearranges to columns <= (container_width + gap) /
+    (min_item_width + gap), so the largest valid column count is the
+    floor of that, clamped to [0, item_count].
     """
     max_columns_for_width = math.floor((container_width + gap) / (min_item_width + gap))
-    columns = max(0, min(max_columns_for_width, math.floor(item_count)))
+    columns = max(0, min(max_columns_for_width, item_count))
 
     if columns < 1:
-        # Not even a single column reaches min_item_width at this
-        # width — the same honest "doesn't fit yet" answer
-        # _find_best_filling_columns gives in the equivalent
-        # situation, not a distinct error.
         return _WidthOnlyColumns(columns=1, rows=item_count, cell_width=0)
 
     rows = math.ceil(item_count / columns)
     cell_width = (container_width - (columns - 1) * gap) / columns
 
     return _WidthOnlyColumns(columns=columns, rows=rows, cell_width=cell_width)
+
+
+def _balanced_cell_size(width: float, height: float) -> tuple[float, float]:
+    """'balanced' cell size for a base (fill) cell of width/height.
+
+    fit_size = min(width, height) is the largest square that fits in
+    both axes — the same value 'fit' itself uses. Each axis here is
+    the geometric mean of its own fill value and fit_size: the smaller
+    fill dimension already equals fit_size, so that axis is unchanged;
+    the larger axis is pulled toward fit_size without reaching it.
+
+    Both axes stay within their original fill bounds by construction:
+    for any x >= fit_size, sqrt(x * fit_size) <= x. That inequality is
+    what guarantees the total grid size never exceeds the container.
+    """
+    fit_size = min(width, height)
+    return math.sqrt(width * fit_size), math.sqrt(height * fit_size)
 
 
 def compute_container_layout(
@@ -137,51 +151,62 @@ def compute_container_layout(
     column search has nothing to weigh cell_width against, so
     min_item_width becomes the sole basis for choosing how many
     columns to use, and cell_height is then derived from cell_width
-    directly (equal to it, for fit; divided by aspect_ratio, for
-    preserve-ratio) — never limited by a height that was never given.
-    'fill' and 'balanced' cannot do this: both compute cell size
-    directly from container_height, with nothing to substitute, and
-    raise FluidaConfigError if it's omitted.
+    directly. 'fill' and 'balanced' cannot do this: both compute cell
+    size directly from container_height, and raise FluidaConfigError
+    if it's omitted.
 
-    Raises FluidaConfigError for a non-finite or out-of-range
-    item_count, gap, aspect_ratio, or min_item_width — the exact same
-    conditions @fluida/core's TypeScript implementation raises
-    FluidaConfigError for, checked in the same order.
-
-    An unrecognized strategy string is deliberately not validated at
-    runtime here when container_height is known: the TypeScript
-    implementation doesn't validate it either — its type system only
-    enforces this at compile time — and an unrecognized value falls
-    through to the same fill-shaped result in both implementations.
-    When container_height is omitted, an unrecognized strategy is
-    rejected for the same reason 'fill' itself is — it defaults to
-    fill-shaped behavior, which auto-height cannot support.
+    Raises FluidaConfigError for an invalid item_count, gap,
+    aspect_ratio, min_item_width, container_width, container_height,
+    or strategy — the same conditions @fluida/core's TypeScript
+    implementation raises FluidaConfigError for.
     """
 
-    if not math.isfinite(item_count) or item_count < 1:
+    if not _is_positive_integer(item_count):
         raise FluidaConfigError(
-            f"Fluida container layout: item_count must be a finite number of at least 1, got {item_count}."
+            f"Fluida container layout: item_count must be a positive integer, got {item_count!r}."
         )
 
-    if not math.isfinite(gap) or gap < 0:
+    if isinstance(gap, bool) or not math.isfinite(gap) or gap < 0:
         raise FluidaConfigError(
-            f"Fluida container layout: gap must be a finite, non-negative number, got {gap}."
+            f"Fluida container layout: gap must be a finite, non-negative number, got {gap!r}."
         )
 
-    if not math.isfinite(aspect_ratio) or aspect_ratio <= 0:
+    if isinstance(aspect_ratio, bool) or not math.isfinite(aspect_ratio) or aspect_ratio <= 0:
         raise FluidaConfigError(
-            f"Fluida container layout: aspect_ratio must be a finite number greater than 0, got {aspect_ratio}."
+            f"Fluida container layout: aspect_ratio must be a finite number greater than 0, got {aspect_ratio!r}."
         )
 
     if min_item_width is not None and (
-        not math.isfinite(min_item_width) or min_item_width <= 0
+        isinstance(min_item_width, bool) or not math.isfinite(min_item_width) or min_item_width <= 0
     ):
         raise FluidaConfigError(
-            "Fluida container layout: min_item_width must be a finite number "
-            f"greater than 0, got {min_item_width}."
+            f"Fluida container layout: min_item_width must be a finite number greater than 0, got {min_item_width!r}."
         )
 
+    if isinstance(container_width, bool) or not math.isfinite(container_width) or container_width < 0:
+        raise FluidaConfigError(
+            f"Fluida container layout: container_width must be a finite number >= 0, got {container_width!r}."
+        )
+
+    if container_height is not None and (
+        isinstance(container_height, bool)
+        or not math.isfinite(container_height)
+        or container_height < 0
+    ):
+        raise FluidaConfigError(
+            f"Fluida container layout: container_height must be a finite number >= 0, got {container_height!r}."
+        )
+
+    if strategy not in _VALID_STRATEGIES:
+        raise FluidaConfigError(
+            f"Fluida container layout: strategy must be one of {_VALID_STRATEGIES}, got {strategy!r}."
+        )
+
+    item_count = int(item_count)
+
     if container_height is None:
+        # Auto-height: 'fill' and 'balanced' compute cell size directly
+        # from container_height, with nothing to substitute.
         if strategy not in ("fit", "preserve-ratio"):
             raise FluidaConfigError(
                 f"Fluida container layout: strategy '{strategy}' requires a known "
@@ -192,8 +217,7 @@ def compute_container_layout(
         if min_item_width is None:
             raise FluidaConfigError(
                 "Fluida container layout: computing a layout without a known "
-                "container_height requires min_item_width — without either, "
-                "there is no basis for choosing a column count."
+                "container_height requires min_item_width."
             )
 
         width_only = _find_columns_by_width_only(container_width, item_count, gap, min_item_width)
@@ -206,7 +230,6 @@ def compute_container_layout(
                 width_only.columns, width_only.rows, width_only.cell_width, width_only.cell_width
             )
 
-        # strategy == "preserve-ratio"
         return LayoutResult(
             width_only.columns,
             width_only.rows,
@@ -219,9 +242,6 @@ def compute_container_layout(
     )
 
     if base.cell_width <= 0 or base.cell_height <= 0:
-        # Nothing measured yet, or nothing fit — return the shape
-        # as-is, at zero size, rather than applying a
-        # strategy-specific formula to numbers that aren't real yet.
         return LayoutResult(base.columns, base.rows, base.cell_width, base.cell_height)
 
     if strategy == "fill":
@@ -236,10 +256,5 @@ def compute_container_layout(
         cell_height = cell_width / aspect_ratio
         return LayoutResult(base.columns, base.rows, cell_width, cell_height)
 
-    if strategy == "balanced":
-        size = math.sqrt(base.cell_width * base.cell_height)
-        return LayoutResult(base.columns, base.rows, size, size)
-
-    # Unrecognized strategy — the same fallback the TypeScript
-    # switch's default case takes: behaves like 'fill'.
-    return LayoutResult(base.columns, base.rows, base.cell_width, base.cell_height)
+    cell_width, cell_height = _balanced_cell_size(base.cell_width, base.cell_height)
+    return LayoutResult(base.columns, base.rows, cell_width, cell_height)

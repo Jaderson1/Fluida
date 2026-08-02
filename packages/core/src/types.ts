@@ -18,8 +18,6 @@ export interface FluidaSnapshot {
 }
 
 export interface FluidaConfig {
-  /** Minimum desired width for each item. */
-  readonly minItemWidth?: number;
   readonly breakpoints?: Breakpoints;
   readonly spacing?: SpacingConfig;
   readonly typography?: TypographyConfig;
@@ -27,7 +25,6 @@ export interface FluidaConfig {
 }
 
 export interface FluidaInstance {
-  
   getSnapshot(): FluidaSnapshot;
 
   getServerSnapshot(): FluidaSnapshot;

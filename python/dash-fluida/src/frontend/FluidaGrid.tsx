@@ -96,14 +96,20 @@ export default function FluidaGrid(props: FluidaGridProps) {
 
     const canScheduleFrame = typeof requestAnimationFrame === 'function';
     let pendingFrameId: number | null = null;
+    let latestMeasurement: { width: number; height: number } | null = null;
+    let isMounted = true;
 
-    const applyMeasurement = (width: number, height: number): void => {
+    // latestMeasurement is written on every ResizeObserver callback,
+    // whether or not a frame is already pending — only the frame
+    // itself is coalesced, never the value it will read. Reading it
+    // here, at the time the frame actually runs, is what makes this
+    // apply the most recent measurement instead of whichever one
+    // happened to schedule the pending frame.
+    const applyMeasurement = (): void => {
       pendingFrameId = null;
-      // computeContainerLayout from @fluida/core — never
-      // reimplemented here. auto_height passes undefined for height
-      // regardless of what was actually measured — the measured
-      // height is simply unused in that case, requesting Core's own
-      // auto-height mode instead of feeding a height back in.
+      if (!isMounted || latestMeasurement === null) return;
+
+      const { width, height } = latestMeasurement;
       const nextLayout = computeContainerLayout(width, auto_height ? undefined : height, options);
       setLayout(nextLayout);
 
@@ -118,19 +124,16 @@ export default function FluidaGrid(props: FluidaGridProps) {
     };
 
     const scheduleMeasurement = (width: number, height: number): void => {
+      latestMeasurement = { width, height };
+
       if (!canScheduleFrame) {
-        // No requestAnimationFrame available — fall back to
-        // immediate, uncoalesced application rather than never
-        // updating at all.
-        applyMeasurement(width, height);
+        applyMeasurement();
         return;
       }
 
-      if (pendingFrameId !== null) return; // a frame is already scheduled
+      if (pendingFrameId !== null) return; // a frame is already scheduled; it reads latestMeasurement when it runs
 
-      pendingFrameId = requestAnimationFrame(() => {
-        applyMeasurement(width, height);
-      });
+      pendingFrameId = requestAnimationFrame(applyMeasurement);
     };
 
     const observer = new ResizeObserver((entries) => {
@@ -142,14 +145,24 @@ export default function FluidaGrid(props: FluidaGridProps) {
     observer.observe(element);
 
     return () => {
+      isMounted = false;
       observer.disconnect();
       if (pendingFrameId !== null && canScheduleFrame) {
         cancelAnimationFrame(pendingFrameId);
         pendingFrameId = null;
       }
+      latestMeasurement = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item_count, strategy, gap, aspect_ratio, min_item_width, notify_layout_changes, auto_height, setProps]);
+  }, [
+    item_count,
+    strategy,
+    gap,
+    aspect_ratio,
+    min_item_width,
+    notify_layout_changes,
+    auto_height,
+    setProps,
+  ]);
 
   // totalHeight is computed here, in the component, not returned by
   // @fluida/core itself — one line of arithmetic from fields Core

@@ -2,7 +2,7 @@
 
 A Dash custom component (`FluidaGrid`) that measures its own real container size in the browser and lays out its children using the same layout engine as [`@fluida/core`](https://github.com/Jaderson1/Fluida/tree/main/packages/core).
 
-**Status: pre-release, `0.1.0`.** Not published to PyPI yet.
+**Status: pre-release, `0.2.0`.** Not published to PyPI yet.
 
 ## Architecture
 
@@ -50,17 +50,35 @@ if __name__ == "__main__":
 
 ## Props
 
-| Prop | Type | Default | Notes |
-|---|---|---|---|
-| `item_count` | `int` | — | Required. |
-| `strategy` | `"fit" \| "fill" \| "balanced" \| "preserve-ratio"` | `"fit"` | |
-| `gap` | `float` | `16` | |
-| `aspect_ratio` | `float` | `1` | Only used by `"preserve-ratio"`. |
-| `min_item_width` | `float` | `None` | Omitted applies no constraint. |
-| `style` | `dict` | `None` | Merged with (and overriding) the layout-driven inline styles. |
-| `className` | `str` | `None` | |
-| `notify_layout_changes` | `bool` | `False` | See below. |
-| `columns`, `rows`, `cellWidth`, `cellHeight` | — | — | Output-only; populated when `notify_layout_changes=True`. |
+| Prop                                         | Type                                                | Default | Notes                                                                                          |
+| -------------------------------------------- | --------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------- |
+| `item_count`                                 | `int`                                               | —       | Required. Positive integer only — `1.5`, `True`/`False`, `None` all raise `FluidaConfigError`. |
+| `strategy`                                   | `"fit" \| "fill" \| "balanced" \| "preserve-ratio"` | `"fit"` | Anything else raises `FluidaConfigError`.                                                      |
+| `gap`                                        | `float`                                             | `16`    |                                                                                                |
+| `aspect_ratio`                               | `float`                                             | `1`     | Only used by `"preserve-ratio"`.                                                               |
+| `min_item_width`                             | `float`                                             | `None`  | Omitted applies no constraint.                                                                 |
+| `auto_height`                                | `bool`                                              | `False` | See below.                                                                                     |
+| `style`                                      | `dict`                                              | `None`  | Merged with (and overriding) the layout-driven inline styles.                                  |
+| `className`                                  | `str`                                               | `None`  |                                                                                                |
+| `notify_layout_changes`                      | `bool`                                              | `False` | See below.                                                                                     |
+| `columns`, `rows`, `cellWidth`, `cellHeight` | —                                                   | —       | Output-only; populated when `notify_layout_changes=True`.                                      |
+
+## `auto_height`
+
+By default, this component needs both a real measured width and height. Set `auto_height=True` to compute the layout from width alone — only with `strategy="fit"` or `strategy="preserve-ratio"`, and only with `min_item_width` also set; `"fill"` and `"balanced"` raise the same `FluidaConfigError` `@fluida/core` itself raises for that combination.
+
+```python
+FluidaGrid(
+    item_count=4,
+    strategy="preserve-ratio",
+    aspect_ratio=4 / 3,
+    min_item_width=300,
+    auto_height=True,
+    children=[chart_card_a, chart_card_b, chart_card_c, chart_card_d],
+)
+```
+
+The element's height is then set explicitly — computed from the real result (`rows * cellHeight + (rows - 1) * gap`) — instead of left at a fixed minimum.
 
 ## `notify_layout_changes`
 
@@ -82,6 +100,7 @@ No webpack, no `dash-component-boilerplate`. The frontend is built with [`tsup`]
 
 ```bash
 pnpm install
+pnpm --filter dash-fluida-frontend test
 pnpm --filter @fluida/core build
 pnpm --filter dash-fluida-frontend build
 ```
@@ -98,7 +117,7 @@ python -m venv .venv
 
 ## What is and isn't verified here
 
-The Python-side tests (props, validation, serialization, that the real bundle is present and contains the real `@fluida/core` algorithm) run and pass in this environment. What they do **not** verify — because it requires an actual browser — is that `FluidaGrid` visually renders, resizes, and lays out children correctly inside a running Dash app. The `ResizeObserver` + `requestAnimationFrame` pattern used here is the same one already tested directly in `@fluida/react`'s own test suite; it is not retested here.
+The frontend's resize handling — coalescing several `ResizeObserver` measurements into one `requestAnimationFrame` call, always applying the most recent one, and cleaning up on unmount — has its own real test suite (`src/frontend/FluidaGrid.test.tsx`, run with `pnpm --filter dash-fluida-frontend test`), not just an assumption that it matches `@fluida/react`'s equivalent pattern. The Python-side tests (props, validation, serialization, that the real bundle is present, contains the real `@fluida/core` algorithm, and its source map name matches the file actually shipped) also run and pass in this environment. What none of this verifies — because it requires an actual browser — is that `FluidaGrid` visually renders, resizes, and lays out children correctly inside a running Dash app.
 
 ## License
 

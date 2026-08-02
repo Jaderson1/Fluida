@@ -49,16 +49,89 @@ def test_preserve_ratio_keeps_the_exact_configured_aspect_ratio():
     assert math.isclose(result.cell_width / result.cell_height, 2, abs_tol=1e-5)
 
 
-def test_balanced_sits_between_fit_and_fill():
+def _assert_within_bounds(result, container_width, container_height, gap):
+    total_grid_width = result.columns * result.cell_width + (result.columns - 1) * gap
+    total_grid_height = result.rows * result.cell_height + (result.rows - 1) * gap
+    tolerance = 1e-9
+
+    assert isinstance(result.columns, int) and result.columns > 0
+    assert isinstance(result.rows, int) and result.rows > 0
+    assert total_grid_width <= container_width + tolerance
+    assert total_grid_height <= container_height + tolerance
+    assert math.isfinite(result.cell_width) and result.cell_width >= 0
+    assert math.isfinite(result.cell_height) and result.cell_height >= 0
+
+
+def test_balanced_wide_short_container_hand_computed():
+    result = compute_container_layout(1000, 100, item_count=3, strategy="balanced", gap=0)
+    assert result.columns == 3
+    assert math.isclose(result.cell_width, 182.574, abs_tol=1e-3)
+    assert result.cell_height == 100
+    _assert_within_bounds(result, 1000, 100, 0)
+
+
+def test_balanced_narrow_tall_container_hand_computed():
+    result = compute_container_layout(100, 1000, item_count=3, strategy="balanced", gap=0)
+    assert result.columns == 1
+    assert result.cell_width == 100
+    assert math.isclose(result.cell_height, 182.574, abs_tol=1e-3)
+    _assert_within_bounds(result, 100, 1000, 0)
+
+
+def test_balanced_square_container_needs_no_correction():
+    balanced = compute_container_layout(600, 600, item_count=4, strategy="balanced", gap=0)
+    fit = compute_container_layout(600, 600, item_count=4, strategy="fit", gap=0)
+    fill = compute_container_layout(600, 600, item_count=4, strategy="fill", gap=0)
+    assert balanced.cell_width == 300
+    assert balanced.cell_height == 300
+    assert balanced == fit
+    assert balanced == fill
+
+
+def test_balanced_between_fit_and_fill_on_the_distorted_axis():
     fit = compute_container_layout(900, 500, item_count=5, strategy="fit")
     fill = compute_container_layout(900, 500, item_count=5, strategy="fill")
     balanced = compute_container_layout(900, 500, item_count=5, strategy="balanced")
 
-    assert not math.isclose(fill.cell_width, fill.cell_height, abs_tol=1e-2)
+    assert fill.cell_width == fit.cell_width
+    assert fill.cell_height > fit.cell_height
 
-    assert balanced.cell_width == balanced.cell_height
-    assert balanced.cell_width >= fit.cell_width - 1e-9
-    assert balanced.cell_width <= max(fill.cell_width, fill.cell_height) + 1e-9
+    assert balanced.cell_width == fit.cell_width
+    assert balanced.cell_height > fit.cell_height
+    assert balanced.cell_height < fill.cell_height
+    _assert_within_bounds(balanced, 900, 500, 16)
+
+
+def test_balanced_matches_typescript_column_count():
+    result = compute_container_layout(900, 500, item_count=5, strategy="balanced", gap=16)
+    assert result.columns == 4
+    assert result.rows == 2
+
+
+@pytest.mark.parametrize(
+    "width,height,count,gap",
+    [
+        (40, 25, 3, 2),
+        (1920, 250, 7, 8),
+        (777, 333, 7, 10),
+        (500, 300, 6, 0),
+        (500, 300, 6, 60),
+        (300, 900, 1, 16),
+    ],
+)
+def test_balanced_never_exceeds_bounds(width, height, count, gap):
+    result = compute_container_layout(width, height, item_count=count, strategy="balanced", gap=gap)
+    _assert_within_bounds(result, width, height, gap)
+
+
+def test_balanced_respects_min_item_width_as_column_filter_like_fit():
+    fit = compute_container_layout(1200, 300, item_count=6, strategy="fit", gap=16, min_item_width=280)
+    result = compute_container_layout(
+        1200, 300, item_count=6, strategy="balanced", gap=16, min_item_width=280
+    )
+    assert result.columns == fit.columns
+    assert result.cell_height == fit.cell_height
+    _assert_within_bounds(result, 1200, 300, 16)
 
 
 def test_chooses_the_column_count_that_minimizes_distortion():
@@ -136,18 +209,9 @@ def test_min_item_width_interacts_with_preserve_ratio():
     assert math.isclose(result.cell_width / result.cell_height, 2, abs_tol=1e-5)
 
 
-def test_unrecognized_strategy_falls_back_to_fill_shaped_result_without_raising():
-    # Deliberate: the TypeScript implementation's switch has no
-    # runtime validation for strategy — an unrecognized value falls
-    # through its default case to the same fill-shaped result. This
-    # test exists specifically so that behavior isn't silently lost
-    # if this Python port is ever "improved" to validate more strictly
-    # than the implementation it's meant to match.
-    fill_result = compute_container_layout(800, 600, item_count=8, strategy="fill")
-    unrecognized_result = compute_container_layout(
-        800, 600, item_count=8, strategy="not-a-real-strategy"  # type: ignore[arg-type]
-    )
-    assert unrecognized_result == fill_result
+def test_unrecognized_strategy_raises_instead_of_falling_back_to_fill():
+    with pytest.raises(FluidaConfigError):
+        compute_container_layout(800, 600, item_count=8, strategy="not-a-real-strategy")  # type: ignore[arg-type]
 
 
 class TestAutoHeight:
@@ -254,3 +318,55 @@ class TestAutoHeight:
         assert result.rows == 4
         assert result.cell_width == 0
         assert result.cell_height == 0
+
+
+class TestItemCountContract:
+    def test_accepts_1_as_smallest_valid_value(self):
+        compute_container_layout(500, 500, item_count=1)
+
+    def test_accepts_a_larger_integer(self):
+        compute_container_layout(500, 500, item_count=50)
+
+    def test_accepts_a_whole_valued_float(self):
+        compute_container_layout(500, 500, item_count=4.0)
+
+    @pytest.mark.parametrize(
+        "value",
+        [0, -1, 1.5, float("nan"), float("inf"), float("-inf"), "4", None, True, False],
+    )
+    def test_rejects_invalid_values(self, value):
+        with pytest.raises(FluidaConfigError):
+            compute_container_layout(500, 500, item_count=value)
+
+    def test_always_returns_integer_rows_and_columns(self):
+        result = compute_container_layout(500, 500, item_count=7)
+        assert isinstance(result.columns, int)
+        assert isinstance(result.rows, int)
+
+
+class TestDimensionValidation:
+    def test_accepts_0_as_container_width(self):
+        compute_container_layout(0, 500, item_count=4)
+
+    @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf"), -1, True])
+    def test_rejects_invalid_container_width(self, value):
+        with pytest.raises(FluidaConfigError):
+            compute_container_layout(value, 500, item_count=4)
+
+    @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf"), -1, True])
+    def test_rejects_invalid_container_height_when_provided(self, value):
+        with pytest.raises(FluidaConfigError):
+            compute_container_layout(500, value, item_count=4)
+
+    def test_still_allows_container_height_none_for_auto_height(self):
+        compute_container_layout(500, None, item_count=4, strategy="fit", min_item_width=100)
+
+
+class TestStrategyValidation:
+    @pytest.mark.parametrize("strategy", ["fill", "fit", "balanced", "preserve-ratio"])
+    def test_accepts_known_strategies(self, strategy):
+        compute_container_layout(500, 500, item_count=4, strategy=strategy)
+
+    def test_rejects_unrecognized_strategy(self):
+        with pytest.raises(FluidaConfigError):
+            compute_container_layout(500, 500, item_count=4, strategy="not-a-real-strategy")

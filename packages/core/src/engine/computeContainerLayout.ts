@@ -3,6 +3,7 @@ import { FluidaConfigError } from '../resolveFluidaConfig';
 
 const DEFAULT_GAP = 16;
 const DEFAULT_ASPECT_RATIO = 1;
+const VALID_STRATEGIES = ['fill', 'fit', 'balanced', 'preserve-ratio'] as const;
 
 interface CandidateColumns {
   readonly columns: number;
@@ -13,19 +14,15 @@ interface CandidateColumns {
 
 /**
  * Finds the column count (from 1 up to itemCount) that fills the
- * available space exactly (no leftover in either axis, by
- * definition) while producing the least-distorted — closest to
- * square — cell. This is the base every strategy below builds on:
- * 'fill' returns it as-is; the others apply a different sizing rule
- * on top of the same chosen column count.
+ * available space exactly while producing the least-distorted cell.
+ * This is the base every strategy below builds on: 'fill' returns it
+ * as-is; the others apply a different sizing rule on the same chosen
+ * column count.
  *
  * minItemWidth, when set, discards any column count whose resulting
- * cellWidth would fall below it, before that candidate is even
- * scored — it restricts which column counts are eligible, it does
- * not change how the winner among the eligible ones is chosen. A
+ * cellWidth would fall below it, before that candidate is scored — a
  * narrower container has fewer columns survive this filter, which is
- * what naturally drives the column count down as the container gets
- * narrower, without a separate "stacking" code path.
+ * what drives the column count down as the container narrows.
  */
 function findBestFillingColumns(
   containerWidth: number,
@@ -54,9 +51,6 @@ function findBestFillingColumns(
     }
   }
 
-  // No candidate produced a positive size, or none met minItemWidth —
-  // either way, a single column at zero size is the honest answer:
-  // not wrong, just not something that currently fits.
   return (
     best ?? {
       columns: 1,
@@ -77,15 +71,12 @@ interface WidthOnlyColumns {
  * Chooses the largest column count (bounded by itemCount) whose
  * resulting cellWidth still meets minItemWidth — used only when
  * containerHeight isn't known, where the distortion-minimizing search
- * in findBestFillingColumns has nothing to compare cellWidth against,
- * so minItemWidth becomes the sole basis for a column count instead.
+ * above has nothing to compare cellWidth against.
  *
- * Solved directly rather than searched: the inequality
- * (containerWidth - gap*(columns-1)) / columns >= minItemWidth
- * rearranges to columns <= (containerWidth + gap) / (minItemWidth + gap),
- * so the largest valid integer column count is the floor of that,
- * clamped to at least 0 and at most itemCount. No loop needed — this
- * is a closed-form solution, not an approximation of one.
+ * Solved directly: (containerWidth - gap*(columns-1)) / columns >=
+ * minItemWidth rearranges to columns <= (containerWidth + gap) /
+ * (minItemWidth + gap), so the largest valid column count is the
+ * floor of that, clamped to [0, itemCount].
  */
 function findColumnsByWidthOnly(
   containerWidth: number,
@@ -97,9 +88,6 @@ function findColumnsByWidthOnly(
   const columns = Math.max(0, Math.min(maxColumnsForWidth, itemCount));
 
   if (columns < 1) {
-    // Not even a single column reaches minItemWidth at this width —
-    // the same honest "doesn't fit yet" answer findBestFillingColumns
-    // gives in the equivalent situation, not a distinct error.
     return { columns: 1, rows: itemCount, cellWidth: 0 };
   }
 
@@ -107,6 +95,33 @@ function findColumnsByWidthOnly(
   const cellWidth = (containerWidth - (columns - 1) * gap) / columns;
 
   return { columns, rows, cellWidth };
+}
+
+/**
+ * 'balanced' cell size for a base (fill) cell of width/height.
+ *
+ * fitSize = min(width, height) is the largest square that fits in
+ * both axes — the same value 'fit' itself uses. Each axis here is the
+ * geometric mean of its own fill value and fitSize: the smaller of
+ * the two fill dimensions already equals fitSize, so that axis comes
+ * back unchanged; the larger axis is pulled toward fitSize without
+ * reaching it, landing partway between 'fill' (no correction) and
+ * 'fit' (full correction to a square).
+ *
+ * This keeps both axes within their original fill bounds by
+ * construction: for any x >= fitSize, sqrt(x * fitSize) <= x. That
+ * inequality is what guarantees totalGridWidth/Height never exceed
+ * the container — not a check added after the fact.
+ */
+function balancedCellSize(
+  width: number,
+  height: number,
+): { cellWidth: number; cellHeight: number } {
+  const fitSize = Math.min(width, height);
+  return {
+    cellWidth: Math.sqrt(width * fitSize),
+    cellHeight: Math.sqrt(height * fitSize),
+  };
 }
 
 export function computeContainerLayout(
@@ -122,9 +137,9 @@ export function computeContainerLayout(
     minItemWidth,
   } = options;
 
-  if (!Number.isFinite(itemCount) || itemCount < 1) {
+  if (!Number.isInteger(itemCount) || itemCount < 1) {
     throw new FluidaConfigError(
-      `Fluida container layout: itemCount must be a finite number of at least 1, got ${itemCount}.`,
+      `Fluida container layout: itemCount must be an integer of at least 1, got ${itemCount}.`,
     );
   }
 
@@ -146,14 +161,27 @@ export function computeContainerLayout(
     );
   }
 
+  if (!Number.isFinite(containerWidth) || containerWidth < 0) {
+    throw new FluidaConfigError(
+      `Fluida container layout: containerWidth must be a finite number >= 0, got ${containerWidth}.`,
+    );
+  }
+
+  if (containerHeight !== undefined && (!Number.isFinite(containerHeight) || containerHeight < 0)) {
+    throw new FluidaConfigError(
+      `Fluida container layout: containerHeight must be a finite number >= 0, got ${containerHeight}.`,
+    );
+  }
+
+  if (!VALID_STRATEGIES.includes(strategy)) {
+    throw new FluidaConfigError(
+      `Fluida container layout: strategy must be one of ${VALID_STRATEGIES.map((value) => `'${value}'`).join(', ')}, got '${strategy}'.`,
+    );
+  }
+
   if (containerHeight === undefined) {
-    // Auto-height: no known containerHeight to divide into rows, so
-    // only strategies whose cell shape doesn't fundamentally depend
-    // on a height value can proceed — 'fill' and 'balanced' compute
-    // cellHeight directly from containerHeight, with nothing to
-    // substitute; an unrecognized strategy string defaults to
-    // fill-shaped behavior elsewhere in this function and is rejected
-    // here for the same reason 'fill' itself is.
+    // Auto-height: 'fill' and 'balanced' compute cell size directly
+    // from containerHeight, with nothing to substitute.
     if (strategy !== 'fit' && strategy !== 'preserve-ratio') {
       throw new FluidaConfigError(
         `Fluida container layout: strategy '${strategy}' requires a known containerHeight — only 'fit' and 'preserve-ratio' support computing a layout without one.`,
@@ -162,7 +190,7 @@ export function computeContainerLayout(
 
     if (minItemWidth === undefined) {
       throw new FluidaConfigError(
-        'Fluida container layout: computing a layout without a known containerHeight requires minItemWidth — without either, there is no basis for choosing a column count.',
+        'Fluida container layout: computing a layout without a known containerHeight requires minItemWidth.',
       );
     }
 
@@ -181,7 +209,6 @@ export function computeContainerLayout(
       };
     }
 
-    // strategy === 'preserve-ratio'
     return {
       columns: widthOnly.columns,
       rows: widthOnly.rows,
@@ -190,12 +217,15 @@ export function computeContainerLayout(
     };
   }
 
-  const base = findBestFillingColumns(containerWidth, containerHeight, itemCount, gap, minItemWidth);
+  const base = findBestFillingColumns(
+    containerWidth,
+    containerHeight,
+    itemCount,
+    gap,
+    minItemWidth,
+  );
 
   if (base.cellWidth <= 0 || base.cellHeight <= 0) {
-    // Nothing measured yet — return the shape as-is, at zero size,
-    // rather than applying a strategy-specific formula to numbers
-    // that aren't real yet.
     return base;
   }
 
@@ -216,16 +246,8 @@ export function computeContainerLayout(
     }
 
     case 'balanced': {
-      const size = Math.sqrt(base.cellWidth * base.cellHeight);
-      return { columns: base.columns, rows: base.rows, cellWidth: size, cellHeight: size };
-    }
-
-    default: {
-      // Unreachable for valid ContainerLayoutStrategy values; falls
-      // back to the safest, most conservative choice rather than
-      // returning undefined at runtime for a caller bypassing the
-      // type system (e.g. plain JS, or a future Dash bridge).
-      return base;
+      const { cellWidth, cellHeight } = balancedCellSize(base.cellWidth, base.cellHeight);
+      return { columns: base.columns, rows: base.rows, cellWidth, cellHeight };
     }
   }
 }

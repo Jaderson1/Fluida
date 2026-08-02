@@ -52,18 +52,171 @@ describe('computeContainerLayout', () => {
     expect(result.cellWidth / result.cellHeight).toBeCloseTo(2, 5);
   });
 
-  it('balanced sits between fit (the smaller, square size) and fill (the larger dimension)', () => {
-    const fit = computeContainerLayout(900, 500, { itemCount: 5, strategy: 'fit' });
-    const fill = computeContainerLayout(900, 500, { itemCount: 5, strategy: 'fill' });
-    const balanced = computeContainerLayout(900, 500, { itemCount: 5, strategy: 'balanced' });
+  describe('balanced', () => {
+    function assertWithinBounds(
+      result: { columns: number; rows: number; cellWidth: number; cellHeight: number },
+      containerWidth: number,
+      containerHeight: number,
+      gap: number,
+    ) {
+      const totalGridWidth = result.columns * result.cellWidth + (result.columns - 1) * gap;
+      const totalGridHeight = result.rows * result.cellHeight + (result.rows - 1) * gap;
+      const tolerance = 1e-9;
 
-    expect(fill.cellWidth).not.toBeCloseTo(fill.cellHeight, 2);
+      expect(Number.isInteger(result.columns)).toBe(true);
+      expect(Number.isInteger(result.rows)).toBe(true);
+      expect(result.columns).toBeGreaterThan(0);
+      expect(result.rows).toBeGreaterThan(0);
+      expect(totalGridWidth).toBeLessThanOrEqual(containerWidth + tolerance);
+      expect(totalGridHeight).toBeLessThanOrEqual(containerHeight + tolerance);
+      expect(Number.isFinite(result.cellWidth)).toBe(true);
+      expect(Number.isFinite(result.cellHeight)).toBe(true);
+      expect(result.cellWidth).toBeGreaterThanOrEqual(0);
+      expect(result.cellHeight).toBeGreaterThanOrEqual(0);
+    }
 
-    expect(balanced.cellWidth).toBe(balanced.cellHeight);
-    expect(balanced.cellWidth).toBeGreaterThanOrEqual(fit.cellWidth - 1e-9);
-    expect(balanced.cellWidth).toBeLessThanOrEqual(
-      Math.max(fill.cellWidth, fill.cellHeight) + 1e-9,
-    );
+    it('a wide, short container never lets total height exceed the container (hand-computed)', () => {
+      const result = computeContainerLayout(1000, 100, {
+        itemCount: 3,
+        strategy: 'balanced',
+        gap: 0,
+      });
+      expect(result.columns).toBe(3);
+      expect(result.cellWidth).toBeCloseTo(182.574, 3);
+      expect(result.cellHeight).toBe(100);
+      assertWithinBounds(result, 1000, 100, 0);
+    });
+
+    it('a narrow, tall container never lets total width exceed the container (hand-computed)', () => {
+      const result = computeContainerLayout(100, 1000, {
+        itemCount: 3,
+        strategy: 'balanced',
+        gap: 0,
+      });
+      expect(result.columns).toBe(1);
+      expect(result.cellWidth).toBe(100);
+      expect(result.cellHeight).toBeCloseTo(182.574, 3);
+      assertWithinBounds(result, 100, 1000, 0);
+    });
+
+    it('a square container needs no correction — balanced equals fit equals fill (hand-computed)', () => {
+      const balanced = computeContainerLayout(600, 600, {
+        itemCount: 4,
+        strategy: 'balanced',
+        gap: 0,
+      });
+      const fit = computeContainerLayout(600, 600, { itemCount: 4, strategy: 'fit', gap: 0 });
+      const fill = computeContainerLayout(600, 600, { itemCount: 4, strategy: 'fill', gap: 0 });
+      expect(balanced.cellWidth).toBe(300);
+      expect(balanced.cellHeight).toBe(300);
+      expect(balanced).toEqual(fit);
+      expect(balanced).toEqual(fill);
+      assertWithinBounds(balanced, 600, 600, 0);
+    });
+
+    it('is strictly between fit and fill on whichever axis fill actually distorts', () => {
+      const fit = computeContainerLayout(900, 500, { itemCount: 5, strategy: 'fit' });
+      const fill = computeContainerLayout(900, 500, { itemCount: 5, strategy: 'fill' });
+      const balanced = computeContainerLayout(900, 500, { itemCount: 5, strategy: 'balanced' });
+
+      // width is already the smaller (constraining) base dimension here,
+      // so it comes back unchanged; height is the one fill stretched,
+      // and balanced pulls it partway back toward fit's square value.
+      expect(fill.cellWidth).toBe(fit.cellWidth);
+      expect(fill.cellHeight).toBeGreaterThan(fit.cellHeight);
+
+      expect(balanced.cellWidth).toBe(fit.cellWidth);
+      expect(balanced.cellHeight).toBeGreaterThan(fit.cellHeight);
+      expect(balanced.cellHeight).toBeLessThan(fill.cellHeight);
+      assertWithinBounds(balanced, 900, 500, 16);
+    });
+
+    it('respects minItemWidth as a column-selection filter the same way fit does', () => {
+      // minItemWidth filters which column count is eligible before any
+      // strategy transforms the cell — it does not re-clamp the final
+      // cell afterward. fit has the same property: its own min(width,
+      // height) can also land below minItemWidth when height is the
+      // smaller axis, exactly as shown here for comparison.
+      const fit = computeContainerLayout(1200, 300, {
+        itemCount: 6,
+        strategy: 'fit',
+        gap: 16,
+        minItemWidth: 280,
+      });
+      const result = computeContainerLayout(1200, 300, {
+        itemCount: 6,
+        strategy: 'balanced',
+        gap: 16,
+        minItemWidth: 280,
+      });
+      expect(result.columns).toBe(fit.columns);
+      expect(result.cellHeight).toBe(fit.cellHeight);
+      assertWithinBounds(result, 1200, 300, 16);
+    });
+
+    it('produces the same column count as fluida-core (Python) for the same inputs', () => {
+      // Cross-checked manually against python/fluida-core's own balanced
+      // test for the same numbers — both implementations use the same
+      // geometric-mean-with-fitSize construction.
+      const result = computeContainerLayout(900, 500, {
+        itemCount: 5,
+        strategy: 'balanced',
+        gap: 16,
+      });
+      expect(result.columns).toBe(4);
+      expect(result.rows).toBe(2);
+    });
+
+    it('never exceeds bounds for a small container', () => {
+      const result = computeContainerLayout(40, 25, { itemCount: 3, strategy: 'balanced', gap: 2 });
+      assertWithinBounds(result, 40, 25, 2);
+    });
+
+    it('never exceeds bounds for an asymmetric container', () => {
+      const result = computeContainerLayout(1920, 250, {
+        itemCount: 7,
+        strategy: 'balanced',
+        gap: 8,
+      });
+      assertWithinBounds(result, 1920, 250, 8);
+    });
+
+    it('never exceeds bounds for a prime itemCount', () => {
+      const result = computeContainerLayout(777, 333, {
+        itemCount: 7,
+        strategy: 'balanced',
+        gap: 10,
+      });
+      assertWithinBounds(result, 777, 333, 10);
+      expect(result.columns * result.rows).toBeGreaterThanOrEqual(7);
+    });
+
+    it('never exceeds bounds with gap 0', () => {
+      const result = computeContainerLayout(500, 300, {
+        itemCount: 6,
+        strategy: 'balanced',
+        gap: 0,
+      });
+      assertWithinBounds(result, 500, 300, 0);
+    });
+
+    it('never exceeds bounds with a large gap relative to the container', () => {
+      const result = computeContainerLayout(500, 300, {
+        itemCount: 6,
+        strategy: 'balanced',
+        gap: 60,
+      });
+      assertWithinBounds(result, 500, 300, 60);
+    });
+
+    it('handles a single item without exceeding bounds', () => {
+      const result = computeContainerLayout(300, 900, {
+        itemCount: 1,
+        strategy: 'balanced',
+        gap: 16,
+      });
+      assertWithinBounds(result, 300, 900, 16);
+    });
   });
 
   it('chooses the column count that minimizes cell distortion, verified against a hand-computed case', () => {
@@ -86,15 +239,13 @@ describe('computeContainerLayout', () => {
   });
 
   it('throws FluidaConfigError for itemCount below 1', () => {
-    expect(() => computeContainerLayout(800, 600, { itemCount: 0 })).toThrow(
-      FluidaConfigError,
-    );
+    expect(() => computeContainerLayout(800, 600, { itemCount: 0 })).toThrow(FluidaConfigError);
   });
 
   it('throws FluidaConfigError for a negative gap', () => {
-    expect(() =>
-      computeContainerLayout(800, 600, { itemCount: 4, gap: -1 }),
-    ).toThrow(FluidaConfigError);
+    expect(() => computeContainerLayout(800, 600, { itemCount: 4, gap: -1 })).toThrow(
+      FluidaConfigError,
+    );
   });
 
   it('throws FluidaConfigError for a non-positive aspectRatio', () => {
@@ -127,7 +278,7 @@ describe('computeContainerLayout', () => {
 
     it('forces fewer columns when the minimum width demands it', () => {
       // Without minItemWidth, 4 columns of 100px each is the fill
-      // answer (verified by the test above). 150 rules 4 out (100 
+      // answer (verified by the test above). 150 rules 4 out (100
       // 150) and 3 out (~133.33 < 150), leaving 2 columns of 200px
       // as the widest still-eligible option.
       const result = computeContainerLayout(400, 100, {
@@ -166,15 +317,15 @@ describe('computeContainerLayout', () => {
     });
 
     it('throws FluidaConfigError for minItemWidth of 0', () => {
-      expect(() =>
-        computeContainerLayout(800, 600, { itemCount: 4, minItemWidth: 0 }),
-      ).toThrow(FluidaConfigError);
+      expect(() => computeContainerLayout(800, 600, { itemCount: 4, minItemWidth: 0 })).toThrow(
+        FluidaConfigError,
+      );
     });
 
     it('throws FluidaConfigError for a negative minItemWidth', () => {
-      expect(() =>
-        computeContainerLayout(800, 600, { itemCount: 4, minItemWidth: -50 }),
-      ).toThrow(FluidaConfigError);
+      expect(() => computeContainerLayout(800, 600, { itemCount: 4, minItemWidth: -50 })).toThrow(
+        FluidaConfigError,
+      );
     });
 
     it('throws FluidaConfigError for a NaN minItemWidth', () => {
@@ -369,6 +520,81 @@ describe('computeContainerLayout', () => {
       expect(result.rows).toBe(4);
       expect(result.cellWidth).toBe(0);
       expect(result.cellHeight).toBe(0);
+    });
+  });
+
+  describe('itemCount contract', () => {
+    it('accepts 1 as the smallest valid value', () => {
+      expect(() => computeContainerLayout(500, 500, { itemCount: 1 })).not.toThrow();
+    });
+
+    it('accepts a larger integer', () => {
+      expect(() => computeContainerLayout(500, 500, { itemCount: 50 })).not.toThrow();
+    });
+
+    it.each([
+      0,
+      -1,
+      1.5,
+      NaN,
+      Infinity,
+      -Infinity,
+      '4' as unknown as number,
+      true as unknown as number,
+    ])('rejects %p', (value) => {
+      expect(() => computeContainerLayout(500, 500, { itemCount: value })).toThrow(
+        FluidaConfigError,
+      );
+    });
+
+    it('always returns integer rows and columns', () => {
+      const result = computeContainerLayout(500, 500, { itemCount: 7 });
+      expect(Number.isInteger(result.rows)).toBe(true);
+      expect(Number.isInteger(result.columns)).toBe(true);
+    });
+  });
+
+  describe('dimension validation', () => {
+    it('accepts 0 as containerWidth (not yet measured)', () => {
+      expect(() => computeContainerLayout(0, 500, { itemCount: 4 })).not.toThrow();
+    });
+
+    it.each([NaN, Infinity, -Infinity, -1])('rejects containerWidth of %p', (value) => {
+      expect(() => computeContainerLayout(value, 500, { itemCount: 4 })).toThrow(FluidaConfigError);
+    });
+
+    it.each([NaN, Infinity, -Infinity, -1])(
+      'rejects containerHeight of %p when provided',
+      (value) => {
+        expect(() => computeContainerLayout(500, value, { itemCount: 4 })).toThrow(
+          FluidaConfigError,
+        );
+      },
+    );
+
+    it('still allows containerHeight to be omitted (auto-height)', () => {
+      expect(() =>
+        computeContainerLayout(500, undefined, {
+          itemCount: 4,
+          strategy: 'fit',
+          minItemWidth: 100,
+        }),
+      ).not.toThrow();
+    });
+  });
+
+  describe('strategy validation', () => {
+    it.each(['fill', 'fit', 'balanced', 'preserve-ratio'] as const)('accepts %s', (strategy) => {
+      expect(() => computeContainerLayout(500, 500, { itemCount: 4, strategy })).not.toThrow();
+    });
+
+    it('rejects an unrecognized strategy instead of falling back to fill', () => {
+      expect(() =>
+        computeContainerLayout(500, 500, {
+          itemCount: 4,
+          strategy: 'not-a-real-strategy' as never,
+        }),
+      ).toThrow(FluidaConfigError);
     });
   });
 });

@@ -4,7 +4,7 @@ The official React integration for [`@fluida/core`](../core), including a Provid
 
 [![npm](https://img.shields.io/npm/v/@fluida/react)](https://www.npmjs.com/package/@fluida/react)
 
-**Status:** public beta, `0.1.0`.
+**Status:** public beta, `0.2.0`.
 
 ## Installation
 
@@ -34,7 +34,7 @@ pnpm add @fluida/react
 ```tsx
 import { FluidaProvider } from '@fluida/react';
 
-<FluidaProvider config={{ /* optional FluidaConfig */ }}>
+<FluidaProvider config={{/* optional FluidaConfig */}}>
   <App />
 </FluidaProvider>;
 ```
@@ -81,25 +81,39 @@ import { FluidaProvider } from '@fluida/react';
 ```tsx
 import { FluidaAdaptiveGrid } from '@fluida/react';
 
+<FluidaAdaptiveGrid itemCount={2} strategy="preserve-ratio" aspectRatio={16 / 9}>
+  <ChartA />
+  <ChartB />
+</FluidaAdaptiveGrid>;
+```
+
+| Prop           | Type                                                | Default              |
+| -------------- | --------------------------------------------------- | -------------------- |
+| `itemCount`    | `number`                                            | required             |
+| `strategy`     | `'fit' \| 'fill' \| 'balanced' \| 'preserve-ratio'` | `'fit'`              |
+| `gap`          | `number`                                            | `16`                 |
+| `aspectRatio`  | `number`                                            | `1`                  |
+| `minItemWidth` | `number`                                            | none — no constraint |
+| `autoHeight`   | `boolean`                                           | `false`              |
+
+`minItemWidth` excludes any column count whose resulting cell would be narrower than it, so the grid naturally uses fewer columns in a narrower container — without a separate "stacking" code path. Omitted, behavior is unchanged from before this prop existed.
+
+`autoHeight`, when `true`, never feeds this grid's own measured height back into the layout computation — only `strategy="fit"` or `strategy="preserve-ratio"`, each with `minItemWidth` also set, support this; `fill` and `balanced` raise the same `FluidaConfigError` `@fluida/core` itself raises for that combination. The element's height is then set explicitly, computed from the real result (`rows * cellHeight + (rows - 1) * gap`), instead of left to a fixed minimum:
+
+```tsx
 <FluidaAdaptiveGrid
-  itemCount={2}
+  itemCount={4}
   strategy="preserve-ratio"
-  aspectRatio={16 / 9}
+  aspectRatio={4 / 3}
+  minItemWidth={300}
+  autoHeight
 >
   <ChartA />
   <ChartB />
+  <ChartC />
+  <ChartD />
 </FluidaAdaptiveGrid>
 ```
-
-| Prop | Type | Default |
-|---|---|---|
-| `itemCount` | `number` | required |
-| `strategy` | `'fit' \| 'fill' \| 'balanced' \| 'preserve-ratio'` | `'fit'` |
-| `gap` | `number` | `16` |
-| `aspectRatio` | `number` | `1` |
-| `minItemWidth` | `number` | none — no constraint |
-
-`minItemWidth` excludes any column count whose resulting cell would be narrower than it, so the grid naturally uses fewer columns in a narrower container — without a separate "stacking" code path. Omitted, behavior is unchanged from before this prop existed.
 
 ### `useFluidaContainerSize(ref)`
 
@@ -107,13 +121,14 @@ import { FluidaAdaptiveGrid } from '@fluida/react';
 const size = useFluidaContainerSize(ref);
 ```
 
-### `useFluidaContainerLayout(ref, options)`
+### `useFluidaContainerLayout(ref, options, autoHeight?)`
 
 ```tsx
-const layout = useFluidaContainerLayout(ref, {
-  itemCount: 4,
-  strategy: 'fit',
-});
+const layout = useFluidaContainerLayout(
+  ref,
+  { itemCount: 4, strategy: 'fit' },
+  false, // autoHeight, defaults to false
+);
 ```
 
 ## Viewport hooks

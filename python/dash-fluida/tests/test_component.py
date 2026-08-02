@@ -5,6 +5,7 @@ direct port of the same pattern already tested in
 @fluida/react's useFluidaContainerSize.test.tsx, not reimplemented or
 retested here."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -104,7 +105,7 @@ def test_bundle_contains_the_real_core_algorithm_not_a_reimplementation():
     package_dir = Path(__file__).resolve().parent.parent / "src" / "dash_fluida"
     bundle_path = package_dir / "dash_fluida.min.js"
     contents = bundle_path.read_text(encoding="utf-8")
-    assert "Fluida container layout: itemCount must be a finite number" in contents
+    assert "Fluida container layout: itemCount must be an integer" in contents
 
 
 def test_bundle_does_not_include_a_bundled_react():
@@ -146,3 +147,18 @@ def test_bundle_contains_the_auto_height_handling():
     bundle_path = package_dir / "dash_fluida.min.js"
     contents = bundle_path.read_text(encoding="utf-8")
     assert "requires a known containerHeight" in contents
+
+
+def test_source_map_url_matches_the_distributed_map_file():
+    package_dir = Path(__file__).resolve().parent.parent / "src" / "dash_fluida"
+    bundle_path = package_dir / "dash_fluida.min.js"
+    contents = bundle_path.read_text(encoding="utf-8")
+
+    match = re.search(r"//# sourceMappingURL=(\S+)", contents)
+    assert match is not None, "bundle has no sourceMappingURL comment"
+
+    referenced_name = match.group(1)
+    assert (package_dir / referenced_name).exists(), (
+        f"bundle references a source map named {referenced_name!r}, "
+        f"but no such file exists next to it in {package_dir}"
+    )

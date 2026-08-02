@@ -56,7 +56,7 @@
     },
     {
       "id": "balanced",
-      "description": "Balanced strategy: a square cell sized to the geometric mean of the fill answer's width and height — between fit's (smaller) and fill's (larger) dimension.",
+      "description": "Balanced strategy: each axis is the geometric mean of the fill answer's own value and the safe square size (min of the two) — the smaller fill dimension is unchanged, the larger one is pulled toward it without exceeding it.",
       "covers": ["balanced"],
       "input": {
         "containerWidth": 900,
@@ -66,8 +66,24 @@
       "expected": {
         "columns": 4,
         "rows": 2,
-        "cellWidth": 227.0374418460532,
+        "cellWidth": 213,
         "cellHeight": 227.0374418460532
+      }
+    },
+    {
+      "id": "balanced-stays-within-a-wide-short-container",
+      "description": "Balanced on a much wider-than-tall container: cellHeight must equal containerHeight exactly (the constraining axis), never exceed it — this is the case the geometric-mean-of-two-values formula used to overflow on.",
+      "covers": ["balanced"],
+      "input": {
+        "containerWidth": 1000,
+        "containerHeight": 100,
+        "options": { "itemCount": 3, "strategy": "balanced", "gap": 0 }
+      },
+      "expected": {
+        "columns": 3,
+        "rows": 1,
+        "cellWidth": 182.57418583505535,
+        "cellHeight": 100
       }
     },
     {
@@ -93,7 +109,11 @@
       "input": {
         "containerWidth": 800,
         "containerHeight": 450,
-        "options": { "itemCount": 4, "strategy": "preserve-ratio", "aspectRatio": 1.7777777777777777 }
+        "options": {
+          "itemCount": 4,
+          "strategy": "preserve-ratio",
+          "aspectRatio": 1.7777777777777777
+        }
       },
       "expected": {
         "columns": 3,
@@ -205,7 +225,13 @@
       "input": {
         "containerWidth": 400,
         "containerHeight": 100,
-        "options": { "itemCount": 4, "gap": 0, "strategy": "preserve-ratio", "aspectRatio": 2, "minItemWidth": 150 }
+        "options": {
+          "itemCount": 4,
+          "gap": 0,
+          "strategy": "preserve-ratio",
+          "aspectRatio": 2,
+          "minItemWidth": 150
+        }
       },
       "expected": {
         "columns": 2,
@@ -285,7 +311,13 @@
       "input": {
         "containerWidth": 1200,
         "containerHeight": null,
-        "options": { "itemCount": 6, "gap": 16, "strategy": "preserve-ratio", "aspectRatio": 2, "minItemWidth": 280 }
+        "options": {
+          "itemCount": 6,
+          "gap": 16,
+          "strategy": "preserve-ratio",
+          "aspectRatio": 2,
+          "minItemWidth": 280
+        }
       },
       "expected": {
         "columns": 4,

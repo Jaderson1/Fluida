@@ -4,7 +4,7 @@ The framework-agnostic engine behind Fluida. Computes layout decisions from eith
 
 [![npm](https://img.shields.io/npm/v/@fluida/core)](https://www.npmjs.com/package/@fluida/core)
 
-**Status:** public beta, `0.1.0`.
+**Status:** public beta, `0.2.0`.
 
 ## Installation
 
@@ -88,6 +88,12 @@ const layout = computeContainerLayout(800, 600, {
 ```
 
 ```ts
+function computeContainerLayout(
+  containerWidth: number,
+  containerHeight: number | undefined,
+  options: ContainerLayoutOptions,
+): ContainerLayoutResult;
+
 interface ContainerLayoutOptions {
   itemCount: number;
   strategy?: 'fit' | 'fill' | 'balanced' | 'preserve-ratio';
@@ -104,14 +110,33 @@ interface ContainerLayoutResult {
 }
 ```
 
+`itemCount` must be a positive integer — `1.5`, `NaN`, `Infinity`, or a numeric string all raise `FluidaConfigError`, not a coerced or rounded value. `containerWidth` and `containerHeight` (when provided) must each be finite and `>= 0`; `0` is valid and represents a container not yet measured. `strategy`, if set, must be one of the four listed below — anything else raises `FluidaConfigError` rather than silently behaving like `fill`.
+
 Strategies:
 
-- **`fit`** — square cells that fit without overflow.
-- **`fill`** — uses the available width and height.
-- **`balanced`** — a middle ground between fit and fill.
-- **`preserve-ratio`** — preserves the configured aspect ratio.
+- **`fit`** — square cells, sized to the smaller of the two available dimensions. Choose it for uniform, icon-like content where a non-square cell would look wrong.
+- **`fill`** — uses the full available width and height as-is, whatever shape that leaves the cell. Choose it when the content itself defines its own aspect ratio (e.g. text) and squeezing it into a specific shape would waste space. Requires a known `containerHeight`.
+- **`balanced`** — the smaller of `fill`'s two dimensions is left unchanged; the larger one is pulled toward it (geometric mean with the smaller) without ever exceeding either original dimension. Less distorted than `fill`, without forcing a square like `fit`. Requires a known `containerHeight`, for the same reason `fill` does.
+- **`preserve-ratio`** — sized to a fixed `aspectRatio` you provide (width / height), as large as fits within the space. Choose it for charts, images, or video, where the shape is fixed but the size should adapt.
 
-`minItemWidth`, when set, excludes any column count whose resulting cell would be narrower than it, before that candidate is even scored — it restricts which column counts are eligible; it does not change how the winner among the eligible ones is chosen or how the strategy sizes the final cell. Omitted (the default), it applies no such constraint — identical to the behavior before this option existed. If no column count satisfies it, the same not-yet-fitting fallback (`columns: 1`, zero-size cell) is returned, not a distinct error.
+`minItemWidth`, when set, excludes any column count whose resulting cell would be narrower than it, before that candidate is even scored — it restricts which column counts are eligible; it does not change how the winner among the eligible ones is chosen or how the strategy sizes the final cell. Omitted (the default), it applies no such constraint. If no column count satisfies it, the same not-yet-fitting fallback (`columns: 1`, zero-size cell) is returned, not a distinct error.
+
+## Auto-height
+
+`containerHeight` can be omitted (`undefined`) for `fit` and `preserve-ratio` specifically, and only when `minItemWidth` is also set:
+
+```ts
+const layout = computeContainerLayout(800, undefined, {
+  itemCount: 4,
+  strategy: 'preserve-ratio',
+  aspectRatio: 4 / 3,
+  minItemWidth: 300,
+});
+```
+
+Without a known height, the usual distortion-minimizing column search has nothing to compare `cellWidth` against — `minItemWidth` becomes the sole basis for choosing a column count instead, and `cellHeight` is derived from the resulting `cellWidth` directly (equal to it for `fit`; divided by `aspectRatio` for `preserve-ratio`). `fill` and `balanced` cannot do this — both compute cell size directly from `containerHeight`, and raise `FluidaConfigError` if it's omitted, as does `fit`/`preserve-ratio` without `minItemWidth` also set.
+
+Total height, if you need it for styling an element, is `rows * cellHeight + (rows - 1) * gap` — this package does not compute or return it; each adapter (`@fluida/react`, `dash-fluida`) computes and applies it directly.
 
 ## Server-side rendering
 

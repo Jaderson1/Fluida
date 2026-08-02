@@ -1,10 +1,6 @@
-export type Breakpoint =
-  | 'mobile'
-  | 'tablet'
-  | 'desktop';
+export type Breakpoint = 'mobile' | 'tablet' | 'desktop';
 
-export type Breakpoints =
-  Readonly<Record<Breakpoint, number>>;
+export type Breakpoints = Readonly<Record<Breakpoint, number>>;
 
 export interface GridLayout {
   readonly columns: number;
@@ -75,23 +71,6 @@ export type ContainerLayoutStrategy = 'fit' | 'fill' | 'balanced' | 'preserve-ra
 
 export interface ContainerLayoutOptions {
   readonly itemCount: number;
-  /** Defaults to 'fit'. */
-  readonly strategy?: ContainerLayoutStrategy;
-  /** Defaults to 16. */
-  readonly gap?: number;
-  /** width / height. Only used by the 'preserve-ratio' strategy. Defaults to 1. */
-  readonly aspectRatio?: number;
-}
-
-export interface ContainerLayoutResult {
-  readonly columns: number;
-  readonly rows: number;
-  readonly cellWidth: number;
-  readonly cellHeight: number;
-}
-
-export interface ContainerLayoutOptions {
-  readonly itemCount: number;
 
   /** Defaults to 'fit'. */
   readonly strategy?: ContainerLayoutStrategy;
@@ -104,4 +83,11 @@ export interface ContainerLayoutOptions {
 
   /** Minimum desired width for each item. */
   readonly minItemWidth?: number;
+}
+
+export interface ContainerLayoutResult {
+  readonly columns: number;
+  readonly rows: number;
+  readonly cellWidth: number;
+  readonly cellHeight: number;
 }

@@ -14,15 +14,18 @@
     "pretypecheck": "pnpm --filter @fluida/core run build",
     "typecheck": "pnpm -r run typecheck",
     "pretest": "pnpm --filter @fluida/core run build",
-    "test": "pnpm -r run test", 
+    "test": "pnpm -r run test",
     "lint": "eslint .",
     "format": "prettier --write .",
     "demo:react": "pnpm --filter @fluida/react-demo dev",
-    "demo:react:build": "pnpm --filter @fluida/react-demo build"
+    "demo:react:build": "pnpm --filter @fluida/react-demo build",
+    "format:check": "prettier . --check"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.7.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.8.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.9.5",
     "tsup": "^8.5.1",

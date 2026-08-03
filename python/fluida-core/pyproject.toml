@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "fluida-core"
 version = "0.2.0"
-description = "Framework-agnostic, pure-Python container layout engine — a faithful port of @fluida/core's TypeScript implementation, verified against the same shared conformance cases."
+description = "Framework-agnostic, pure-Python container layout engine â€” a faithful port of @fluida/core's TypeScript implementation, verified against the same shared conformance cases."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]

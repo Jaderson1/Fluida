@@ -7,7 +7,8 @@ name = "fluida-core"
 version = "0.2.0"
 description = "Framework-agnostic, pure-Python container layout engine — a faithful port of @fluida/core's TypeScript implementation, verified against the same shared conformance cases."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.9"
 authors = [
   { name = "Jaderson Manoel Lichtnow Olson" }

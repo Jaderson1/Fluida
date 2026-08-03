@@ -49,11 +49,24 @@ jobs:
       - name: Build Dash frontend bundle
         run: pnpm --filter dash-fluida-frontend build
 
-      - name: Confirm the rebuilt Dash bundle matches what's committed
+      - name: Verify generated Dash assets
         run: |
-          if ! git diff --quiet -- python/dash-fluida/src/dash_fluida/dash_fluida.min.js python/dash-fluida/src/dash_fluida/dash_fluida.min.js.map; then
-            echo "::error::python/dash-fluida/src/dash_fluida/dash_fluida.min.js(.map) is out of date — rebuild with 'pnpm --filter dash-fluida-frontend build' and commit the result."
-            git diff --stat -- python/dash-fluida/src/dash_fluida/
+          BUNDLE="python/dash-fluida/src/dash_fluida/dash_fluida.min.js"
+          SOURCE_MAP="python/dash-fluida/src/dash_fluida/dash_fluida.min.js.map"
+
+          if ! git diff --quiet -- "$BUNDLE"; then
+            echo "::error::$BUNDLE is out of date — rebuild with 'pnpm --filter dash-fluida-frontend build' and commit the result."
+            git diff --stat -- "$BUNDLE"
+            exit 1
+          fi
+
+          if [ ! -f "$SOURCE_MAP" ]; then
+            echo "::error::$SOURCE_MAP was not generated."
+            exit 1
+          fi
+
+          if ! grep -q "sourceMappingURL=dash_fluida.min.js.map" "$BUNDLE"; then
+            echo "::error::$BUNDLE does not reference dash_fluida.min.js.map."
             exit 1
           fi
 

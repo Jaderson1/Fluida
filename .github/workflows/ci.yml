@@ -137,13 +137,14 @@ jobs:
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build Core
+        run: pnpm --filter @fluida/core build
+
       - name: Run frontend tests
         run: pnpm --filter dash-fluida-frontend test
 
-      - name: Build Core and frontend bundle
-        run: |
-          pnpm --filter @fluida/core build
-          pnpm --filter dash-fluida-frontend build
+      - name: Build frontend bundle
+        run: pnpm --filter dash-fluida-frontend build
 
       - name: Install Python package
         working-directory: python/dash-fluida

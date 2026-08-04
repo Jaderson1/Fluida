@@ -64,6 +64,17 @@ class FluidaGrid(Component):
     - className (string; optional):
         CSS class applied to the container.
 
+    - aria_label (string; optional):
+        Forwarded as the rendered element's aria-label. FluidaGrid has
+        no semantic meaning of its own to describe — it's a layout
+        container, not a landmark or a widget — so nothing is set
+        unless you provide one.
+
+    - extra_attrs (dict; optional):
+        Any other DOM attribute — most commonly aria-* or data-* — to
+        apply directly to the rendered element, e.g.
+        extra_attrs={"data-testid": "charts-grid", "aria-describedby": "charts-help"}.
+
     - notify_layout_changes (boolean; default False):
         When True, the computed layout is also sent to the Python side
         via columns/rows/cellWidth/cellHeight, batched to at most once
@@ -126,6 +137,8 @@ class FluidaGrid(Component):
         min_item_width: typing.Optional[float] = None,
         style: typing.Optional[dict] = None,
         className: typing.Optional[str] = None,
+        aria_label: typing.Optional[str] = None,
+        extra_attrs: typing.Optional[dict] = None,
         notify_layout_changes: typing.Optional[bool] = None,
         auto_height: typing.Optional[bool] = None,
         columns: typing.Optional[int] = None,
@@ -144,6 +157,8 @@ class FluidaGrid(Component):
             "min_item_width",
             "style",
             "className",
+            "aria_label",
+            "extra_attrs",
             "notify_layout_changes",
             "auto_height",
             "columns",

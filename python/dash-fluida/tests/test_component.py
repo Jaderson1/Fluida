@@ -162,3 +162,28 @@ def test_source_map_url_matches_the_distributed_map_file():
         f"bundle references a source map named {referenced_name!r}, "
         f"but no such file exists next to it in {package_dir}"
     )
+
+
+def test_aria_label_reaches_serialized_props():
+    grid = FluidaGrid(item_count=4, aria_label="Chart grid")
+    serialized = grid.to_plotly_json()
+    assert serialized["props"]["aria_label"] == "Chart grid"
+
+
+def test_extra_attrs_reaches_serialized_props():
+    grid = FluidaGrid(
+        item_count=4,
+        extra_attrs={"data-testid": "charts-grid", "aria-describedby": "charts-help"},
+    )
+    serialized = grid.to_plotly_json()
+    assert serialized["props"]["extra_attrs"] == {
+        "data-testid": "charts-grid",
+        "aria-describedby": "charts-help",
+    }
+
+
+def test_aria_label_and_extra_attrs_default_to_absent():
+    grid = FluidaGrid(item_count=4)
+    serialized = grid.to_plotly_json()
+    assert "aria_label" not in serialized["props"]
+    assert "extra_attrs" not in serialized["props"]

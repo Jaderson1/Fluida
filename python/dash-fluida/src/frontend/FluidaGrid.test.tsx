@@ -170,3 +170,100 @@ describe('SSR safety', () => {
     globalThis.ResizeObserver = originalResizeObserver;
   });
 });
+
+describe('accessibility', () => {
+  it('sets no aria-label by default', () => {
+    installMockResizeObserver();
+
+    const { container } = render(
+      <FluidaGrid item_count={2} gap={0} strategy="fit">
+        <span>1</span>
+        <span>2</span>
+      </FluidaGrid>,
+    );
+
+    expect(container.querySelector('div')?.hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('forwards aria_label when provided', () => {
+    installMockResizeObserver();
+
+    const { container } = render(
+      <FluidaGrid item_count={2} gap={0} strategy="fit" aria_label="Chart grid">
+        <span>1</span>
+        <span>2</span>
+      </FluidaGrid>,
+    );
+
+    expect(container.querySelector('div')?.getAttribute('aria-label')).toBe('Chart grid');
+  });
+
+  it('forwards arbitrary aria-* and data-* attributes via extra_attrs', () => {
+    installMockResizeObserver();
+
+    const { container } = render(
+      <FluidaGrid
+        item_count={2}
+        gap={0}
+        strategy="fit"
+        extra_attrs={{ 'data-testid': 'charts-grid', 'aria-describedby': 'charts-help' }}
+      >
+        <span>1</span>
+        <span>2</span>
+      </FluidaGrid>,
+    );
+
+    const element = container.querySelector('div');
+    expect(element?.getAttribute('data-testid')).toBe('charts-grid');
+    expect(element?.getAttribute('aria-describedby')).toBe('charts-help');
+  });
+
+  it('does not add any role to the grid container', () => {
+    installMockResizeObserver();
+
+    const { container } = render(
+      <FluidaGrid item_count={2} gap={0} strategy="fit">
+        <span>1</span>
+        <span>2</span>
+      </FluidaGrid>,
+    );
+
+    expect(container.querySelector('div')?.hasAttribute('role')).toBe(false);
+  });
+
+  it('renders children in their given order, undisturbed, for normal tab order', () => {
+    installMockResizeObserver();
+
+    const { getAllByRole } = render(
+      <FluidaGrid item_count={3} gap={0} strategy="fit">
+        <button type="button">First</button>
+        <button type="button">Second</button>
+        <button type="button">Third</button>
+      </FluidaGrid>,
+    );
+
+    const buttons = getAllByRole('button');
+    expect(buttons.map((b) => b.textContent)).toEqual(['First', 'Second', 'Third']);
+    // No tabIndex applied by FluidaGrid itself — each button keeps
+    // its own natural (unset) tabIndex, not one FluidaGrid assigned.
+    for (const button of buttons) {
+      expect(button.hasAttribute('tabindex')).toBe(false);
+    }
+  });
+
+  it('does not attach any keyboard event handler to the container', () => {
+    installMockResizeObserver();
+
+    const { container } = render(
+      <FluidaGrid item_count={2} gap={0} strategy="fit">
+        <span>1</span>
+        <span>2</span>
+      </FluidaGrid>,
+    );
+
+    const element = container.querySelector('div');
+    expect(element?.onkeydown).toBeNull();
+    expect(element?.onkeyup).toBeNull();
+    expect(element?.onkeypress).toBeNull();
+  });
+});

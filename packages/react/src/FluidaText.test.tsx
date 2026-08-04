@@ -124,6 +124,21 @@ describe('FluidaText', () => {
     expect(getByTestId('text').className).toBe('custom-class');
   });
 
+  it('forwards arbitrary aria-* attributes without adding its own', () => {
+    const { getByTestId } = render(
+      <FluidaProvider>
+        <FluidaText data-testid="text" aria-label="Page title" aria-level={1}>
+          content
+        </FluidaText>
+      </FluidaProvider>,
+    );
+
+    const element = getByTestId('text');
+    expect(element.getAttribute('aria-label')).toBe('Page title');
+    expect(element.getAttribute('aria-level')).toBe('1');
+    expect(element.hasAttribute('role')).toBe(false);
+  });
+
   it('lets a consumer override the font-size directly', () => {
     const { getByTestId } = render(
       <FluidaProvider>

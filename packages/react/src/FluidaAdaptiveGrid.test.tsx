@@ -683,3 +683,76 @@ describe('itemCount vs. rendered children (development warning)', () => {
     });
   });
 });
+
+describe('accessibility', () => {
+  it('sets no role or aria-label unless the consumer provides one', () => {
+    installMockResizeObserver();
+
+    const { getByTestId } = render(
+      <FluidaAdaptiveGrid itemCount={2} gap={0} strategy="fit" data-testid="grid">
+        <span>1</span>
+        <span>2</span>
+      </FluidaAdaptiveGrid>,
+    );
+
+    const element = getByTestId('grid');
+    expect(element.hasAttribute('role')).toBe(false);
+    expect(element.hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('forwards arbitrary aria-* and data-* attributes', () => {
+    installMockResizeObserver();
+
+    const { getByTestId } = render(
+      <FluidaAdaptiveGrid
+        itemCount={2}
+        gap={0}
+        strategy="fit"
+        data-testid="grid"
+        aria-label="Chart grid"
+        aria-describedby="charts-help"
+      >
+        <span>1</span>
+        <span>2</span>
+      </FluidaAdaptiveGrid>,
+    );
+
+    const element = getByTestId('grid');
+    expect(element.getAttribute('aria-label')).toBe('Chart grid');
+    expect(element.getAttribute('aria-describedby')).toBe('charts-help');
+  });
+
+  it('renders children in their given order with no tabIndex of its own, for normal keyboard focus order', () => {
+    installMockResizeObserver();
+
+    const { getAllByRole } = render(
+      <FluidaAdaptiveGrid itemCount={3} gap={0} strategy="fit">
+        <button type="button">First</button>
+        <button type="button">Second</button>
+        <button type="button">Third</button>
+      </FluidaAdaptiveGrid>,
+    );
+
+    const buttons = getAllByRole('button');
+    expect(buttons.map((b) => b.textContent)).toEqual(['First', 'Second', 'Third']);
+    for (const button of buttons) {
+      expect(button.hasAttribute('tabindex')).toBe(false);
+    }
+  });
+
+  it('does not attach any keyboard event handler to the container', () => {
+    installMockResizeObserver();
+
+    const { getByTestId } = render(
+      <FluidaAdaptiveGrid itemCount={2} gap={0} strategy="fit" data-testid="grid">
+        <span>1</span>
+        <span>2</span>
+      </FluidaAdaptiveGrid>,
+    );
+
+    const element = getByTestId('grid');
+    expect(element.onkeydown).toBeNull();
+    expect(element.onkeyup).toBeNull();
+    expect(element.onkeypress).toBeNull();
+  });
+});

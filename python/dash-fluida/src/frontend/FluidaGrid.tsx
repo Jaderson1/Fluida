@@ -57,6 +57,21 @@ export interface FluidaGridProps {
    * Defaults to False: existing behavior is unchanged unless set.
    */
   readonly auto_height?: boolean;
+  /**
+   * Forwarded as the rendered element's aria-label. FluidaGrid has no
+   * semantic meaning of its own to describe — it's a layout
+   * container, not a landmark or a widget — so nothing is set unless
+   * you provide one.
+   */
+  readonly aria_label?: string;
+  /**
+   * Any other DOM attribute — most commonly aria-* or data-* — to
+   * apply directly to the rendered element, e.g.
+   * extra_attrs={"data-testid": "charts-grid", "aria-describedby": "charts-help"}.
+   * FluidaGrid does not enumerate every possible attribute a
+   * consumer might need; this covers the rest without needing to.
+   */
+  readonly extra_attrs?: Record<string, string>;
   /** Provided by the Dash renderer itself. */
   readonly setProps?: (nextProps: Record<string, unknown>) => void;
 }
@@ -72,6 +87,8 @@ export default function FluidaGrid(props: FluidaGridProps) {
     min_item_width,
     style,
     className,
+    aria_label,
+    extra_attrs,
     notify_layout_changes = false,
     auto_height = false,
     setProps,
@@ -189,7 +206,14 @@ export default function FluidaGrid(props: FluidaGridProps) {
   };
 
   return (
-    <div id={id} ref={containerRef} className={className} style={gridStyle}>
+    <div
+      id={id}
+      ref={containerRef}
+      className={className}
+      style={gridStyle}
+      aria-label={aria_label}
+      {...extra_attrs}
+    >
       {children}
     </div>
   );
@@ -205,6 +229,8 @@ FluidaGrid.propTypes = {
   min_item_width: PropTypes.number,
   style: PropTypes.object,
   className: PropTypes.string,
+  aria_label: PropTypes.string,
+  extra_attrs: PropTypes.object,
   notify_layout_changes: PropTypes.bool,
   auto_height: PropTypes.bool,
   setProps: PropTypes.func,

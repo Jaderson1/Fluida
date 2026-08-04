@@ -597,4 +597,84 @@ describe('computeContainerLayout', () => {
       ).toThrow(FluidaConfigError);
     });
   });
+
+  describe('balanced — property-based coverage', () => {
+    // mulberry32: a small, deterministic PRNG — not cryptographic, not
+    // imported from anywhere, just enough to generate the same 200
+    // "random" cases on every run, in every environment, forever.
+    // Property-based testing needs reproducibility as much as it
+    // needs variety; a seed pinned in source code is what guarantees
+    // a failure here is reproducible by anyone, not a one-off flake.
+    function mulberry32(seed: number): () => number {
+      let a = seed;
+      return () => {
+        a |= 0;
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const SEED = 20260804;
+    const CASE_COUNT = 200;
+    const rand = mulberry32(SEED);
+
+    interface RandomCase {
+      readonly containerWidth: number;
+      readonly containerHeight: number;
+      readonly itemCount: number;
+      readonly gap: number;
+    }
+
+    function randomCase(): RandomCase {
+      return {
+        containerWidth: 10 + rand() * 3990, // 10..4000
+        containerHeight: 10 + rand() * 3990,
+        itemCount: 1 + Math.floor(rand() * 60), // 1..60
+        gap: rand() * 100, // 0..100
+      };
+    }
+
+    const cases: RandomCase[] = Array.from({ length: CASE_COUNT }, randomCase);
+
+    it.each(cases.map((c, i) => [i, c] as const))('case %i stays within bounds and never exceeds fill', (_i, testCase) => {
+      const { containerWidth, containerHeight, itemCount, gap } = testCase;
+
+      const balanced = computeContainerLayout(containerWidth, containerHeight, {
+        itemCount,
+        strategy: 'balanced',
+        gap,
+      });
+      const fill = computeContainerLayout(containerWidth, containerHeight, {
+        itemCount,
+        strategy: 'fill',
+        gap,
+      });
+
+      expect(Number.isFinite(balanced.cellWidth)).toBe(true);
+      expect(Number.isFinite(balanced.cellHeight)).toBe(true);
+      expect(Number.isInteger(balanced.rows)).toBe(true);
+      expect(Number.isInteger(balanced.columns)).toBe(true);
+      expect(balanced.rows).toBeGreaterThan(0);
+      expect(balanced.columns).toBeGreaterThan(0);
+      expect(balanced.rows * balanced.columns).toBeGreaterThanOrEqual(itemCount);
+
+      const tolerance = 1e-6;
+      const totalGridWidth = balanced.columns * balanced.cellWidth + (balanced.columns - 1) * gap;
+      const totalGridHeight = balanced.rows * balanced.cellHeight + (balanced.rows - 1) * gap;
+
+      // Only meaningful once something actually fits — the degenerate
+      // zero-size fallback is covered by its own tests elsewhere and
+      // trivially satisfies every bound here regardless.
+      if (balanced.cellWidth > 0) {
+        expect(totalGridWidth).toBeLessThanOrEqual(containerWidth + tolerance);
+        expect(balanced.cellWidth).toBeLessThanOrEqual(fill.cellWidth + tolerance);
+      }
+      if (balanced.cellHeight > 0) {
+        expect(totalGridHeight).toBeLessThanOrEqual(containerHeight + tolerance);
+        expect(balanced.cellHeight).toBeLessThanOrEqual(fill.cellHeight + tolerance);
+      }
+    });
+  });
 });

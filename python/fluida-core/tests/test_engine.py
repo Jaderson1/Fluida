@@ -3,6 +3,7 @@ hand-written cases (not the shared conformance file — that's covered
 separately in test_conformance.py)."""
 
 import math
+import random
 
 import pytest
 from fluida_core import FluidaConfigError, compute_container_layout
@@ -370,3 +371,59 @@ class TestStrategyValidation:
     def test_rejects_unrecognized_strategy(self):
         with pytest.raises(FluidaConfigError):
             compute_container_layout(500, 500, item_count=4, strategy="not-a-real-strategy")
+
+
+# A fixed seed, not a fresh one per run: reproducibility matters as
+# much as variety for property-based coverage — a failure here needs
+# to be the same failure for anyone who runs this file, not a flake
+# that only sometimes reproduces.
+_SEED = 20260804
+_CASE_COUNT = 200
+
+
+def _random_cases():
+    rng = random.Random(_SEED)
+    for _ in range(_CASE_COUNT):
+        yield {
+            "container_width": 10 + rng.random() * 3990,
+            "container_height": 10 + rng.random() * 3990,
+            "item_count": rng.randint(1, 60),
+            "gap": rng.random() * 100,
+        }
+
+
+@pytest.mark.parametrize("case", list(_random_cases()))
+def test_balanced_property_stays_within_bounds_and_never_exceeds_fill(case):
+    balanced = compute_container_layout(
+        case["container_width"],
+        case["container_height"],
+        item_count=case["item_count"],
+        strategy="balanced",
+        gap=case["gap"],
+    )
+    fill = compute_container_layout(
+        case["container_width"],
+        case["container_height"],
+        item_count=case["item_count"],
+        strategy="fill",
+        gap=case["gap"],
+    )
+
+    assert math.isfinite(balanced.cell_width)
+    assert math.isfinite(balanced.cell_height)
+    assert isinstance(balanced.rows, int)
+    assert isinstance(balanced.columns, int)
+    assert balanced.rows > 0
+    assert balanced.columns > 0
+    assert balanced.rows * balanced.columns >= case["item_count"]
+
+    tolerance = 1e-6
+    total_grid_width = balanced.columns * balanced.cell_width + (balanced.columns - 1) * case["gap"]
+    total_grid_height = balanced.rows * balanced.cell_height + (balanced.rows - 1) * case["gap"]
+
+    if balanced.cell_width > 0:
+        assert total_grid_width <= case["container_width"] + tolerance
+        assert balanced.cell_width <= fill.cell_width + tolerance
+    if balanced.cell_height > 0:
+        assert total_grid_height <= case["container_height"] + tolerance
+        assert balanced.cell_height <= fill.cell_height + tolerance

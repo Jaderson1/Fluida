@@ -68,6 +68,57 @@ jobs:
       - name: Verify the bundle build is deterministic
         run: node python/dash-fluida/scripts/verify-bundle-determinism.mjs
 
+  react-compat:
+    name: '@fluida/react against React ${{ matrix.react-version }}'
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # >=18.0.0 is the declared peerDependencies floor; the devDependency
+        # pin (react ^19.2.7) is what every other job already tests, so
+        # this job's job is specifically the other end of that range.
+        react-version:
+          - '18.3.1'
+          - '19.2.7'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Pin React ${{ matrix.react-version }} and install
+        run: |
+          cat >> pnpm-workspace.yaml << EOF
+          overrides:
+            react: ${{ matrix.react-version }}
+            react-dom: ${{ matrix.react-version }}
+          EOF
+          pnpm install --no-frozen-lockfile
+
+      - name: Confirm the pinned version actually installed
+        run: |
+          INSTALLED=$(node -p "require('./packages/react/node_modules/react/package.json').version")
+          echo "Installed React: $INSTALLED"
+          if [ "$INSTALLED" != "${{ matrix.react-version }}" ]; then
+            echo "::error::Expected React ${{ matrix.react-version }}, got $INSTALLED"
+            exit 1
+          fi
+
+      - name: Build Core
+        run: pnpm --filter @fluida/core build
+
+      - name: Run React tests
+        run: pnpm --filter @fluida/react run test
+
   fluida-core:
     name: fluida-core (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest

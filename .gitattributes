@@ -1,0 +1,14 @@
+# Force LF for source files regardless of platform or local git config.
+# Without this, sourcesContent embedded in generated source maps
+# (python/dash-fluida's bundle in particular) can differ byte-for-byte
+# between a checkout that applied CRLF and one that didn't, even when
+# nothing about the actual source changed.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

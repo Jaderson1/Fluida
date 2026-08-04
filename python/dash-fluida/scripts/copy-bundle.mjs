@@ -40,6 +40,42 @@ if (existsSync(sourceMap)) {
     `//# sourceMappingURL=${destinationMapName}`,
   );
   writeFileSync(destination, rewritten);
+
+  normalizeSourceMap(destinationMap);
 }
 
 console.log(`Copied ${source} -> ${destination}`);
+
+/**
+ * Makes the generated .map byte-identical across a Windows/macOS/Linux
+ * build of the exact same source: sourcesContent embeds each source
+ * file's text verbatim, including whatever line endings that file
+ * happened to have on disk at build time (CRLF vs LF, depending on
+ * the OS and git's own checkout behavior), and `sources` paths use
+ * the OS's own path separator. Neither has any effect on how the map
+ * actually functions — a debugger maps positions using `mappings`,
+ * not by comparing sourcesContent's raw bytes — so normalizing both
+ * to a single, fixed convention here doesn't change what the map
+ * does, only makes two builds of the same source produce the same
+ * file.
+ */
+function normalizeSourceMap(mapPath) {
+  const raw = readFileSync(mapPath, 'utf8');
+  const map = JSON.parse(raw);
+
+  if (Array.isArray(map.sources)) {
+    map.sources = map.sources.map((sourcePath) => sourcePath.split(path.sep).join('/'));
+  }
+
+  if (Array.isArray(map.sourcesContent)) {
+    map.sourcesContent = map.sourcesContent.map((content) =>
+      typeof content === 'string' ? content.replace(/\r\n/g, '\n') : content,
+    );
+  }
+
+  // JSON.stringify preserves this object's own key insertion order,
+  // which is already the same across platforms since it comes from
+  // parsing the same tsup output — only the values above needed
+  // normalizing, not the key order itself.
+  writeFileSync(mapPath, `${JSON.stringify(map)}\n`);
+}

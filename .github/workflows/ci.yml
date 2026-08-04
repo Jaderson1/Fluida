@@ -49,19 +49,14 @@ jobs:
       - name: Build Dash frontend bundle
         run: pnpm --filter dash-fluida-frontend build
 
-      - name: Verify generated Dash assets
+      - name: Verify generated Dash assets are up to date
         run: |
           BUNDLE="python/dash-fluida/src/dash_fluida/dash_fluida.min.js"
           SOURCE_MAP="python/dash-fluida/src/dash_fluida/dash_fluida.min.js.map"
 
-          if ! git diff --quiet -- "$BUNDLE"; then
-            echo "::error::$BUNDLE is out of date — rebuild with 'pnpm --filter dash-fluida-frontend build' and commit the result."
-            git diff --stat -- "$BUNDLE"
-            exit 1
-          fi
-
-          if [ ! -f "$SOURCE_MAP" ]; then
-            echo "::error::$SOURCE_MAP was not generated."
+          if ! git diff --quiet -- "$BUNDLE" "$SOURCE_MAP"; then
+            echo "::error::$BUNDLE or $SOURCE_MAP is out of date — rebuild with 'pnpm --filter dash-fluida-frontend build' and commit the result."
+            git diff --stat -- "$BUNDLE" "$SOURCE_MAP"
             exit 1
           fi
 
@@ -69,6 +64,9 @@ jobs:
             echo "::error::$BUNDLE does not reference dash_fluida.min.js.map."
             exit 1
           fi
+
+      - name: Verify the bundle build is deterministic
+        run: node python/dash-fluida/scripts/verify-bundle-determinism.mjs
 
   fluida-core:
     name: fluida-core (Python ${{ matrix.python-version }})

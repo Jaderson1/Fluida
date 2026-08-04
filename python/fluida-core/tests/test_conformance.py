@@ -7,11 +7,11 @@ read directly, exactly as the rules for this file require."""
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Union
 
 import pytest
 
-from fluida_core import compute_container_layout
+from fluida_core import FluidaConfigError, compute_container_layout
 
 _CONFORMANCE_FILE_PATH = (
     Path(__file__).resolve().parents[3] / "spec" / "conformance" / "layout-cases.json"
@@ -26,6 +26,21 @@ def _load_conformance_file() -> Dict[str, Any]:
 _CONFORMANCE_FILE = _load_conformance_file()
 _TOLERANCE = _CONFORMANCE_FILE["tolerance"]
 _CASES = _CONFORMANCE_FILE["cases"]
+_INVALID_CASES = _CONFORMANCE_FILE["invalidCases"]
+
+
+def _resolve_sentinel(value: Optional[Union[float, str]]) -> Optional[float]:
+    """JSON has no representation for NaN/Infinity/-Infinity, so the
+    conformance file spells them as the strings "NaN"/"Infinity"/
+    "-Infinity" wherever an invalid case needs one. Any other value
+    (a real number, or None) passes through unchanged."""
+    if value == "NaN":
+        return float("nan")
+    if value == "Infinity":
+        return float("inf")
+    if value == "-Infinity":
+        return float("-inf")
+    return value
 
 
 def _is_within_tolerance(actual: float, expected: float) -> bool:
@@ -38,15 +53,7 @@ def _is_within_tolerance(actual: float, expected: float) -> bool:
     return abs(actual - expected) <= allowed_difference
 
 
-def test_conformance_file_loads_at_least_fifteen_cases():
-    assert len(_CASES) >= 15
-
-
-@pytest.mark.parametrize("case", _CASES, ids=lambda case: case["id"])
-def test_conformance_case(case: Dict[str, Any]):
-    input_ = case["input"]
-    options: Dict[str, Any] = dict(input_["options"])
-
+def _options_to_kwargs(options: Dict[str, Any]) -> Dict[str, Any]:
     # The JSON's options use the same field names as the TypeScript
     # API (itemCount, aspectRatio, minItemWidth) — mapped here to
     # compute_container_layout's snake_case keyword arguments, per
@@ -61,9 +68,26 @@ def test_conformance_case(case: Dict[str, Any]):
         kwargs["aspect_ratio"] = options["aspectRatio"]
     if "minItemWidth" in options:
         kwargs["min_item_width"] = options["minItemWidth"]
+    return kwargs
+
+
+def test_conformance_file_loads_at_least_fifteen_valid_cases():
+    assert len(_CASES) >= 15
+
+
+def test_conformance_file_loads_several_invalid_cases():
+    assert len(_INVALID_CASES) >= 5
+
+
+@pytest.mark.parametrize("case", _CASES, ids=lambda case: case["id"])
+def test_conformance_case(case: Dict[str, Any]):
+    input_ = case["input"]
+    kwargs = _options_to_kwargs(input_["options"])
 
     result = compute_container_layout(
-        input_["containerWidth"], input_["containerHeight"], **kwargs
+        _resolve_sentinel(input_["containerWidth"]),
+        _resolve_sentinel(input_["containerHeight"]),
+        **kwargs,
     )
 
     expected = case["expected"]
@@ -77,3 +101,16 @@ def test_conformance_case(case: Dict[str, Any]):
     # floor, per the conformance file's own stated tolerance.
     assert _is_within_tolerance(result.cell_width, expected["cellWidth"]), case["description"]
     assert _is_within_tolerance(result.cell_height, expected["cellHeight"]), case["description"]
+
+
+@pytest.mark.parametrize("case", _INVALID_CASES, ids=lambda case: case["id"])
+def test_conformance_invalid_case(case: Dict[str, Any]):
+    input_ = case["input"]
+    kwargs = _options_to_kwargs(input_["options"])
+
+    with pytest.raises(FluidaConfigError):
+        compute_container_layout(
+            _resolve_sentinel(input_["containerWidth"]),
+            _resolve_sentinel(input_["containerHeight"]),
+            **kwargs,
+        )

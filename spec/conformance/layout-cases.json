@@ -1,19 +1,26 @@
 {
-  "description": "Shared, language-neutral test cases for computeContainerLayout's behavior. Every case here was extracted from, or verified directly against, @fluida/core's TypeScript implementation and its existing unit tests — not invented independently. This is a shared set of inputs and expected outputs, not a formal specification: it exists so any current or future implementation (in any language) can be checked against the same real cases the TypeScript implementation already passes.",
+  "description": "Shared, language-neutral test cases for computeContainerLayout's behavior. Every case here was extracted from, or verified directly against, @fluida/core's TypeScript implementation and its existing unit tests \u2014 not invented independently. This is a shared set of inputs and expected outputs, not a formal specification: it exists so any current or future implementation (in any language) can be checked against the same real cases the TypeScript implementation already passes.",
   "tolerance": {
-    "relative": 1e-6,
-    "absoluteMinimum": 1e-6,
-    "note": "columns and rows must match exactly. cellWidth and cellHeight must be within max(absoluteMinimum, abs(expected) * relative) of the expected value — a relative tolerance with an absolute floor, so exact-zero expectations (e.g. the not-yet-fitting fallback) still allow a tiny epsilon instead of demanding bit-exact equality."
+    "relative": 1e-06,
+    "absoluteMinimum": 1e-06,
+    "note": "columns and rows must match exactly. cellWidth and cellHeight must be within max(absoluteMinimum, abs(expected) * relative) of the expected value \u2014 a relative tolerance with an absolute floor, so exact-zero expectations (e.g. the not-yet-fitting fallback) still allow a tiny epsilon instead of demanding bit-exact equality."
   },
   "cases": [
     {
       "id": "defaults",
-      "description": "No strategy, gap, or aspectRatio given — defaults to fit, gap 16, aspectRatio 1. Also demonstrates an irregular item count (8 items do not divide evenly into any column count without leftover cells) and a decimal (non-integer) result.",
-      "covers": ["defaults", "fit", "irregular-item-count", "decimal-results"],
+      "description": "No strategy, gap, or aspectRatio given \u2014 defaults to fit, gap 16, aspectRatio 1. Also demonstrates an irregular item count (8 items do not divide evenly into any column count without leftover cells) and a decimal (non-integer) result.",
+      "covers": [
+        "defaults",
+        "fit",
+        "irregular-item-count",
+        "decimal-results"
+      ],
       "input": {
         "containerWidth": 800,
         "containerHeight": 600,
-        "options": { "itemCount": 8 }
+        "options": {
+          "itemCount": 8
+        }
       },
       "expected": {
         "columns": 3,
@@ -25,11 +32,16 @@
     {
       "id": "fit-explicit",
       "description": "Explicit fit strategy: square cells, sized to the smaller dimension of the unconstrained fill answer.",
-      "covers": ["fit"],
+      "covers": [
+        "fit"
+      ],
       "input": {
         "containerWidth": 900,
         "containerHeight": 500,
-        "options": { "itemCount": 5, "strategy": "fit" }
+        "options": {
+          "itemCount": 5,
+          "strategy": "fit"
+        }
       },
       "expected": {
         "columns": 4,
@@ -41,11 +53,16 @@
     {
       "id": "fill",
       "description": "Fill strategy: uses the exact available space in both axes, even though the resulting cell is not square.",
-      "covers": ["fill"],
+      "covers": [
+        "fill"
+      ],
       "input": {
         "containerWidth": 800,
         "containerHeight": 600,
-        "options": { "itemCount": 8, "strategy": "fill" }
+        "options": {
+          "itemCount": 8,
+          "strategy": "fill"
+        }
       },
       "expected": {
         "columns": 3,
@@ -56,12 +73,17 @@
     },
     {
       "id": "balanced",
-      "description": "Balanced strategy: each axis is the geometric mean of the fill answer's own value and the safe square size (min of the two) — the smaller fill dimension is unchanged, the larger one is pulled toward it without exceeding it.",
-      "covers": ["balanced"],
+      "description": "Balanced strategy: each axis is the geometric mean of the fill answer's own value and the safe square size (min of the two) \u2014 the smaller fill dimension is unchanged, the larger one is pulled toward it without exceeding it.",
+      "covers": [
+        "balanced"
+      ],
       "input": {
         "containerWidth": 900,
         "containerHeight": 500,
-        "options": { "itemCount": 5, "strategy": "balanced" }
+        "options": {
+          "itemCount": 5,
+          "strategy": "balanced"
+        }
       },
       "expected": {
         "columns": 4,
@@ -72,12 +94,18 @@
     },
     {
       "id": "balanced-stays-within-a-wide-short-container",
-      "description": "Balanced on a much wider-than-tall container: cellHeight must equal containerHeight exactly (the constraining axis), never exceed it — this is the case the geometric-mean-of-two-values formula used to overflow on.",
-      "covers": ["balanced"],
+      "description": "Balanced on a much wider-than-tall container: cellHeight must equal containerHeight exactly (the constraining axis), never exceed it \u2014 this is the case the geometric-mean-of-two-values formula used to overflow on.",
+      "covers": [
+        "balanced"
+      ],
       "input": {
         "containerWidth": 1000,
         "containerHeight": 100,
-        "options": { "itemCount": 3, "strategy": "balanced", "gap": 0 }
+        "options": {
+          "itemCount": 3,
+          "strategy": "balanced",
+          "gap": 0
+        }
       },
       "expected": {
         "columns": 3,
@@ -89,11 +117,17 @@
     {
       "id": "preserve-ratio-integer-ratio",
       "description": "preserve-ratio with an integer aspect ratio (2): the cell keeps exactly that width-to-height ratio.",
-      "covers": ["preserve-ratio"],
+      "covers": [
+        "preserve-ratio"
+      ],
       "input": {
         "containerWidth": 800,
         "containerHeight": 600,
-        "options": { "itemCount": 6, "strategy": "preserve-ratio", "aspectRatio": 2 }
+        "options": {
+          "itemCount": 6,
+          "strategy": "preserve-ratio",
+          "aspectRatio": 2
+        }
       },
       "expected": {
         "columns": 3,
@@ -104,8 +138,11 @@
     },
     {
       "id": "preserve-ratio-fractional-ratio",
-      "description": "preserve-ratio with a fractional (non-integer) aspect ratio, 16/9 — the same widescreen ratio used throughout the project's own demo and documentation.",
-      "covers": ["aspect-ratio-fractional", "preserve-ratio"],
+      "description": "preserve-ratio with a fractional (non-integer) aspect ratio, 16/9 \u2014 the same widescreen ratio used throughout the project's own demo and documentation.",
+      "covers": [
+        "aspect-ratio-fractional",
+        "preserve-ratio"
+      ],
       "input": {
         "containerWidth": 800,
         "containerHeight": 450,
@@ -124,12 +161,20 @@
     },
     {
       "id": "gap-zero-integer-result",
-      "description": "gap explicitly set to 0, and minItemWidth omitted entirely — an integer result (100x100), and the baseline that the minItemWidth-reduces-columns case below is compared against.",
-      "covers": ["gap", "minItemWidth-omitted", "integer-results"],
+      "description": "gap explicitly set to 0, and minItemWidth omitted entirely \u2014 an integer result (100x100), and the baseline that the minItemWidth-reduces-columns case below is compared against.",
+      "covers": [
+        "gap",
+        "minItemWidth-omitted",
+        "integer-results"
+      ],
       "input": {
         "containerWidth": 400,
         "containerHeight": 100,
-        "options": { "itemCount": 4, "gap": 0, "strategy": "fill" }
+        "options": {
+          "itemCount": 4,
+          "gap": 0,
+          "strategy": "fill"
+        }
       },
       "expected": {
         "columns": 4,
@@ -140,12 +185,16 @@
     },
     {
       "id": "zero-size-container",
-      "description": "Container with no measured size yet (width and height both 0) — the honest not-yet-fitting fallback, not an error.",
-      "covers": ["zero-size-container"],
+      "description": "Container with no measured size yet (width and height both 0) \u2014 the honest not-yet-fitting fallback, not an error.",
+      "covers": [
+        "zero-size-container"
+      ],
       "input": {
         "containerWidth": 0,
         "containerHeight": 0,
-        "options": { "itemCount": 8 }
+        "options": {
+          "itemCount": 8
+        }
       },
       "expected": {
         "columns": 1,
@@ -156,12 +205,19 @@
     },
     {
       "id": "min-item-width-reduces-columns",
-      "description": "Same container and item count as gap-zero-integer-result, but with minItemWidth: 150 — 4 columns of 100px each would be excluded (100 < 150), leaving 2 columns of 200px as the widest still-eligible option.",
-      "covers": ["minItemWidth-reduces-columns"],
+      "description": "Same container and item count as gap-zero-integer-result, but with minItemWidth: 150 \u2014 4 columns of 100px each would be excluded (100 < 150), leaving 2 columns of 200px as the widest still-eligible option.",
+      "covers": [
+        "minItemWidth-reduces-columns"
+      ],
       "input": {
         "containerWidth": 400,
         "containerHeight": 100,
-        "options": { "itemCount": 4, "gap": 0, "strategy": "fill", "minItemWidth": 150 }
+        "options": {
+          "itemCount": 4,
+          "gap": 0,
+          "strategy": "fill",
+          "minItemWidth": 150
+        }
       },
       "expected": {
         "columns": 2,
@@ -173,11 +229,17 @@
     {
       "id": "min-item-width-accounts-for-gap",
       "description": "minItemWidth checked against a cell width that already has gap subtracted: with a 16px gap, 5 columns would need (1200 - 4*16) / 5 = 227.2px per cell, below the 280px minimum, so 5 columns is excluded and 4 columns (288px) wins instead.",
-      "covers": ["minItemWidth-with-gap"],
+      "covers": [
+        "minItemWidth-with-gap"
+      ],
       "input": {
         "containerWidth": 1200,
         "containerHeight": 600,
-        "options": { "itemCount": 6, "gap": 16, "minItemWidth": 280 }
+        "options": {
+          "itemCount": 6,
+          "gap": 16,
+          "minItemWidth": 280
+        }
       },
       "expected": {
         "columns": 4,
@@ -188,12 +250,18 @@
     },
     {
       "id": "min-item-width-impossible",
-      "description": "minItemWidth set higher than any column count could ever satisfy in this container — falls back to the same not-yet-fitting shape as zero-size-container, not a distinct error.",
-      "covers": ["minItemWidth-impossible"],
+      "description": "minItemWidth set higher than any column count could ever satisfy in this container \u2014 falls back to the same not-yet-fitting shape as zero-size-container, not a distinct error.",
+      "covers": [
+        "minItemWidth-impossible"
+      ],
       "input": {
         "containerWidth": 400,
         "containerHeight": 100,
-        "options": { "itemCount": 4, "gap": 0, "minItemWidth": 10000 }
+        "options": {
+          "itemCount": 4,
+          "gap": 0,
+          "minItemWidth": 10000
+        }
       },
       "expected": {
         "columns": 1,
@@ -204,12 +272,19 @@
     },
     {
       "id": "min-item-width-with-fit-strategy",
-      "description": "minItemWidth filters eligible columns first; fit then squares off whatever candidate survived that filter — same 2-column, 200x50 candidate as min-item-width-reduces-columns, squared down to 50x50.",
-      "covers": ["minItemWidth-reduces-columns"],
+      "description": "minItemWidth filters eligible columns first; fit then squares off whatever candidate survived that filter \u2014 same 2-column, 200x50 candidate as min-item-width-reduces-columns, squared down to 50x50.",
+      "covers": [
+        "minItemWidth-reduces-columns"
+      ],
       "input": {
         "containerWidth": 400,
         "containerHeight": 100,
-        "options": { "itemCount": 4, "gap": 0, "strategy": "fit", "minItemWidth": 150 }
+        "options": {
+          "itemCount": 4,
+          "gap": 0,
+          "strategy": "fit",
+          "minItemWidth": 150
+        }
       },
       "expected": {
         "columns": 2,
@@ -221,7 +296,10 @@
     {
       "id": "min-item-width-with-preserve-ratio",
       "description": "minItemWidth filters eligible columns first; preserve-ratio then applies its configured aspect ratio on top of the same surviving candidate.",
-      "covers": ["minItemWidth-reduces-columns", "preserve-ratio"],
+      "covers": [
+        "minItemWidth-reduces-columns",
+        "preserve-ratio"
+      ],
       "input": {
         "containerWidth": 400,
         "containerHeight": 100,
@@ -243,11 +321,15 @@
     {
       "id": "odd-item-count",
       "description": "A prime, irregular item count (7) that cannot divide evenly into any small grid.",
-      "covers": ["irregular-item-count"],
+      "covers": [
+        "irregular-item-count"
+      ],
       "input": {
         "containerWidth": 1000,
         "containerHeight": 700,
-        "options": { "itemCount": 7 }
+        "options": {
+          "itemCount": 7
+        }
       },
       "expected": {
         "columns": 3,
@@ -258,12 +340,16 @@
     },
     {
       "id": "single-item",
-      "description": "A single item — the simplest possible case, one column and one row, filling the whole measured space.",
-      "covers": ["irregular-item-count"],
+      "description": "A single item \u2014 the simplest possible case, one column and one row, filling the whole measured space.",
+      "covers": [
+        "irregular-item-count"
+      ],
       "input": {
         "containerWidth": 500,
         "containerHeight": 300,
-        "options": { "itemCount": 1 }
+        "options": {
+          "itemCount": 1
+        }
       },
       "expected": {
         "columns": 1,
@@ -274,12 +360,18 @@
     },
     {
       "id": "many-columns-narrow-gap",
-      "description": "A wider, shallower container with more items and a smaller gap than the other cases — an integer result at a different scale than gap-zero-integer-result.",
-      "covers": ["gap", "integer-results"],
+      "description": "A wider, shallower container with more items and a smaller gap than the other cases \u2014 an integer result at a different scale than gap-zero-integer-result.",
+      "covers": [
+        "gap",
+        "integer-results"
+      ],
       "input": {
         "containerWidth": 1000,
         "containerHeight": 200,
-        "options": { "itemCount": 10, "gap": 8 }
+        "options": {
+          "itemCount": 10,
+          "gap": 8
+        }
       },
       "expected": {
         "columns": 9,
@@ -290,12 +382,20 @@
     },
     {
       "id": "auto-height-fit",
-      "description": "containerHeight omitted (null): fit chooses columns from width and minItemWidth alone, then squares the cell — same columns and cellWidth as the height-aware min-item-width-accounts-for-gap case above, confirming the two paths agree whenever both could apply.",
-      "covers": ["auto-height", "minItemWidth-with-gap"],
+      "description": "containerHeight omitted (null): fit chooses columns from width and minItemWidth alone, then squares the cell \u2014 same columns and cellWidth as the height-aware min-item-width-accounts-for-gap case above, confirming the two paths agree whenever both could apply.",
+      "covers": [
+        "auto-height",
+        "minItemWidth-with-gap"
+      ],
       "input": {
         "containerWidth": 1200,
         "containerHeight": null,
-        "options": { "itemCount": 6, "gap": 16, "strategy": "fit", "minItemWidth": 280 }
+        "options": {
+          "itemCount": 6,
+          "gap": 16,
+          "strategy": "fit",
+          "minItemWidth": 280
+        }
       },
       "expected": {
         "columns": 4,
@@ -306,8 +406,11 @@
     },
     {
       "id": "auto-height-preserve-ratio",
-      "description": "containerHeight omitted (null): preserve-ratio chooses the same columns as auto-height-fit (same width, gap, minItemWidth), then derives cellHeight from cellWidth and aspectRatio directly — never limited by a height that doesn't exist.",
-      "covers": ["auto-height", "preserve-ratio"],
+      "description": "containerHeight omitted (null): preserve-ratio chooses the same columns as auto-height-fit (same width, gap, minItemWidth), then derives cellHeight from cellWidth and aspectRatio directly \u2014 never limited by a height that doesn't exist.",
+      "covers": [
+        "auto-height",
+        "preserve-ratio"
+      ],
       "input": {
         "containerWidth": 1200,
         "containerHeight": null,
@@ -328,18 +431,247 @@
     },
     {
       "id": "auto-height-exact-boundary",
-      "description": "containerHeight omitted (null): a column count whose cellWidth lands exactly on minItemWidth (1000 / 5 columns, gap 0 = exactly 200) is accepted, not excluded — the boundary is inclusive.",
-      "covers": ["auto-height"],
+      "description": "containerHeight omitted (null): a column count whose cellWidth lands exactly on minItemWidth (1000 / 5 columns, gap 0 = exactly 200) is accepted, not excluded \u2014 the boundary is inclusive.",
+      "covers": [
+        "auto-height"
+      ],
       "input": {
         "containerWidth": 1000,
         "containerHeight": null,
-        "options": { "itemCount": 5, "gap": 0, "strategy": "fit", "minItemWidth": 200 }
+        "options": {
+          "itemCount": 5,
+          "gap": 0,
+          "strategy": "fit",
+          "minItemWidth": 200
+        }
       },
       "expected": {
         "columns": 5,
         "rows": 1,
         "cellWidth": 200,
         "cellHeight": 200
+      }
+    },
+    {
+      "id": "zero-container-width-is-valid-not-an-error",
+      "description": "0 represents a container not yet measured \u2014 a real, expected state, not an error. Included here specifically so this stays a documented, checked behavior rather than an assumption.",
+      "covers": [
+        "dimensions"
+      ],
+      "input": {
+        "containerWidth": 0,
+        "containerHeight": 600,
+        "options": {
+          "itemCount": 4
+        }
+      },
+      "expected": {
+        "columns": 1,
+        "rows": 4,
+        "cellWidth": 0,
+        "cellHeight": 0
+      }
+    }
+  ],
+  "invalidCases": [
+    {
+      "id": "fill-without-height",
+      "description": "fill computes cell size directly from containerHeight \u2014 nothing to substitute when it's omitted.",
+      "covers": [
+        "fill",
+        "error"
+      ],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": null,
+        "options": {
+          "itemCount": 4,
+          "strategy": "fill"
+        }
+      },
+      "expectedError": {
+        "category": "config"
+      }
+    },
+    {
+      "id": "balanced-without-height",
+      "description": "balanced, like fill, needs a real containerHeight to compute either axis.",
+      "covers": [
+        "balanced",
+        "error"
+      ],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": null,
+        "options": {
+          "itemCount": 4,
+          "strategy": "balanced"
+        }
+      },
+      "expectedError": {
+        "category": "config"
+      }
+    },
+    {
+      "id": "auto-height-fit-without-min-item-width",
+      "description": "fit can run without a known height, but only with minItemWidth as the alternative basis for a column count \u2014 omitting both leaves nothing to choose columns from.",
+      "covers": [
+        "fit",
+        "auto-height",
+        "error"
+      ],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": null,
+        "options": {
+          "itemCount": 4,
+          "strategy": "fit"
+        }
+      },
+      "expectedError": {
+        "category": "config"
+      }
+    },
+    {
+      "id": "auto-height-preserve-ratio-without-min-item-width",
+      "description": "Same requirement as fit, for preserve-ratio.",
+      "covers": [
+        "preserve-ratio",
+        "auto-height",
+        "error"
+      ],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": null,
+        "options": {
+          "itemCount": 4,
+          "strategy": "preserve-ratio",
+          "aspectRatio": 2
+        }
+      },
+      "expectedError": {
+        "category": "config"
+      }
+    },
+    {
+      "id": "fractional-item-count",
+      "description": "itemCount is a discrete quantity \u2014 1.5 items isn't a smaller or rounded request, it's not a valid one.",
+      "covers": [
+        "item-count",
+        "error"
+      ],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": 600,
+        "options": {
+          "itemCount": 1.5
+        }
+      },
+      "expectedError": {
+        "category": "config"
+      }
+    },
+    {
+      "id": "zero-item-count",
+      "covers": [
+        "item-count",
+        "error"
+      ],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": 600,
+        "options": {
+          "itemCount": 0
+        }
+      },
+      "expectedError": {
+        "category": "config"
+      }
+    },
+    {
+      "id": "negative-item-count",
+      "covers": [
+        "item-count",
+        "error"
+      ],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": 600,
+        "options": {
+          "itemCount": -3
+        }
+      },
+      "expectedError": {
+        "category": "config"
+      }
+    },
+    {
+      "id": "negative-container-width",
+      "covers": [
+        "dimensions",
+        "error"
+      ],
+      "input": {
+        "containerWidth": -100,
+        "containerHeight": 600,
+        "options": {
+          "itemCount": 4
+        }
+      },
+      "expectedError": {
+        "category": "config"
+      }
+    },
+    {
+      "id": "nan-container-width",
+      "covers": [
+        "dimensions",
+        "error"
+      ],
+      "input": {
+        "containerWidth": "NaN",
+        "containerHeight": 600,
+        "options": {
+          "itemCount": 4
+        }
+      },
+      "expectedError": {
+        "category": "config"
+      }
+    },
+    {
+      "id": "infinite-container-height",
+      "covers": [
+        "dimensions",
+        "error"
+      ],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": "Infinity",
+        "options": {
+          "itemCount": 4
+        }
+      },
+      "expectedError": {
+        "category": "config"
+      }
+    },
+    {
+      "id": "unrecognized-strategy",
+      "covers": [
+        "strategy",
+        "error"
+      ],
+      "input": {
+        "containerWidth": 800,
+        "containerHeight": 600,
+        "options": {
+          "itemCount": 4,
+          "strategy": "not-a-real-strategy"
+        }
+      },
+      "expectedError": {
+        "category": "config"
       }
     }
   ]

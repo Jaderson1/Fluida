@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ContainerLayoutOptions, ContainerLayoutResult } from './types';
 import { computeContainerLayout } from './computeContainerLayout';
+import { FluidaConfigError } from '../resolveFluidaConfig';
 
 /**
  * Loads spec/conformance/layout-cases.json — a shared, language-neutral
@@ -24,11 +25,25 @@ interface ConformanceCase {
   readonly description: string;
   readonly covers: readonly string[];
   readonly input: {
-    readonly containerWidth: number;
-    readonly containerHeight: number | null;
+    readonly containerWidth: number | string;
+    readonly containerHeight: number | string | null;
     readonly options: ContainerLayoutOptions;
   };
   readonly expected: ContainerLayoutResult;
+}
+
+interface InvalidConformanceCase {
+  readonly id: string;
+  readonly description?: string;
+  readonly covers: readonly string[];
+  readonly input: {
+    readonly containerWidth: number | string;
+    readonly containerHeight: number | string | null;
+    readonly options: ContainerLayoutOptions;
+  };
+  readonly expectedError: {
+    readonly category: 'config';
+  };
 }
 
 interface ConformanceFile {
@@ -38,6 +53,7 @@ interface ConformanceFile {
     readonly absoluteMinimum: number;
   };
   readonly cases: readonly ConformanceCase[];
+  readonly invalidCases: readonly InvalidConformanceCase[];
 }
 
 const conformanceFilePath = fileURLToPath(
@@ -47,6 +63,23 @@ const conformanceFilePath = fileURLToPath(
 const conformanceFile = JSON.parse(
   readFileSync(conformanceFilePath, 'utf-8'),
 ) as ConformanceFile;
+
+/**
+ * JSON has no representation for NaN/Infinity/-Infinity, so the
+ * conformance file spells them as the strings "NaN"/"Infinity"/
+ * "-Infinity" wherever an invalid case needs one — this turns those
+ * specific sentinel strings back into the real values before calling
+ * computeContainerLayout with them. Any other value (a real number,
+ * or a string that isn't one of these three) passes through
+ * unchanged — that's this function correctly not touching strings
+ * that are meant to be tested as strings.
+ */
+function resolveSentinel(value: number | string | null): number | null {
+  if (value === 'NaN') return NaN;
+  if (value === 'Infinity') return Infinity;
+  if (value === '-Infinity') return -Infinity;
+  return value as number | null;
+}
 
 /**
  * A relative tolerance with an absolute floor: allows up to
@@ -68,16 +101,19 @@ function isWithinTolerance(
 }
 
 describe('layout conformance cases (spec/conformance/layout-cases.json)', () => {
-  it('loads at least 15 cases', () => {
+  it('loads at least 15 valid cases and several invalid ones', () => {
     expect(conformanceFile.cases.length).toBeGreaterThanOrEqual(15);
+    expect(conformanceFile.invalidCases.length).toBeGreaterThanOrEqual(5);
   });
 
-  const { tolerance, cases } = conformanceFile;
+  const { tolerance, cases, invalidCases } = conformanceFile;
 
   it.each(cases)('$id — $description', (testCase) => {
     const result = computeContainerLayout(
-      testCase.input.containerWidth,
-      testCase.input.containerHeight === null ? undefined : testCase.input.containerHeight,
+      resolveSentinel(testCase.input.containerWidth) as number,
+      testCase.input.containerHeight === null
+        ? undefined
+        : (resolveSentinel(testCase.input.containerHeight) as number),
       testCase.input.options,
     );
 
@@ -105,5 +141,17 @@ describe('layout conformance cases (spec/conformance/layout-cases.json)', () => 
         tolerance.absoluteMinimum,
       ),
     ).toBe(true);
+  });
+
+  it.each(invalidCases)('$id (invalid)', (testCase) => {
+    expect(() =>
+      computeContainerLayout(
+        resolveSentinel(testCase.input.containerWidth) as number,
+        testCase.input.containerHeight === null
+          ? undefined
+          : (resolveSentinel(testCase.input.containerHeight) as number),
+        testCase.input.options,
+      ),
+    ).toThrow(FluidaConfigError);
   });
 });

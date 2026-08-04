@@ -632,5 +632,54 @@ describe('itemCount vs. rendered children (development warning)', () => {
 
       expect(observer?.disconnected).toBe(true);
     });
+
+    it('a ResizeObserver callback delivered after unmount does not warn, throw, or update anything', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const { getByTestId, unmount } = render(
+        <FluidaAdaptiveGrid itemCount={4} strategy="fit" gap={0} data-testid="grid">
+          {Array.from({ length: 4 }, (_, i) => (
+            <span key={i}>{i}</span>
+          ))}
+        </FluidaAdaptiveGrid>,
+      );
+
+      const element = getByTestId('grid');
+      const observer = getLiveObserverFor(element);
+
+      // A real resize to establish a stable, known layout before the
+      // race — otherwise there's nothing to distinguish "unaffected
+      // by the late callback" from "just never rendered anything".
+      act(() => {
+        observer?.trigger(400, 400);
+        vi.runAllTimers();
+      });
+      const columnsBeforeUnmount = element.style.gridTemplateColumns;
+
+      unmount();
+
+      // The mock's own trigger() calls its callback unconditionally,
+      // disconnected or not — deliberately simulating the case a real
+      // browser is supposed to prevent but where relying on that
+      // alone would be fragile: a callback already queued (e.g. in a
+      // microtask) before disconnect() ran, delivered after.
+      expect(() => {
+        act(() => {
+          observer?.trigger(900, 900);
+          vi.runAllTimers();
+        });
+      }).not.toThrow();
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(warnSpy).not.toHaveBeenCalled();
+      // The unmounted element's own style never changes as a result —
+      // there's nothing left for the late callback to have updated.
+      expect(element.style.gridTemplateColumns).toBe(columnsBeforeUnmount);
+
+      vi.useRealTimers();
+    });
   });
 });

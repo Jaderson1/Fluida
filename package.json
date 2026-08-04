@@ -1,7 +1,7 @@
 {
   "name": "fluida",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Monorepo for Fluida - automatic, framework-agnostic responsive layouts",
   "license": "MIT",
   "type": "module",

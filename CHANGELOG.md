@@ -31,3 +31,9 @@ All notable changes to this project are documented here. Format loosely follows 
 ## `@fluida/core` 0.1.0 / `@fluida/react` 0.1.0
 
 Initial public release: viewport-based layout (`createFluida`, `FluidaProvider`, `FluidaContainer`, `FluidaGrid`, `FluidaStack`, `FluidaText`) and container-based layout (`computeContainerLayout`, `FluidaAdaptiveGrid`, `ResizeObserver`-based measurement), with SSR and React Strict Mode support.
+
+## [0.2.2] - 2026-08-04
+### Fixed
+- Fixed corrupted UTF-8 em dashes in Python package metadata and comments.
+- Aligned the TypeScript and Python package versions.
+- Confirmed that both Python wheels include the MIT license.

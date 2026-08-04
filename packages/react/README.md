@@ -72,9 +72,21 @@ import { FluidaProvider } from '@fluida/react';
 
 ### `FluidaText`
 
+A thin convenience wrapper around `useFluidaLayout().typography.scale` — applies it as `fontSize` (in `rem`) to whichever element you choose via `as`, and exposes the same number as a `--fluida-type-scale` CSS custom property for composing your own proportions on top of it.
+
 ```tsx
 <FluidaText as="h1">A responsive heading</FluidaText>
 ```
+
+`typography.scale` is one multiplier, not a type scale with different sizes per heading level — `as="h1"` changes which HTML element renders, not how large the text is relative to an `as="p"` with the same content; both get the exact same `fontSize`. This is deliberate, not an oversight: an inline style always overrides a browser's own default heading sizes, so a component that both sets a default `fontSize` and preserves natural per-tag proportions isn't possible without inventing sizes Fluida has no real basis for. If you want a heading visibly larger than body text that still scales with the viewport, compose it yourself with the custom property:
+
+```css
+h1 {
+  font-size: calc(2rem * var(--fluida-type-scale, 1));
+}
+```
+
+`FluidaText` is most directly useful as-is for body text, labels, and anywhere a single flat scale is exactly what you want — reach for the custom property, or call `useFluidaLayout()` directly, for anything needing per-level proportions.
 
 ## `FluidaAdaptiveGrid`
 

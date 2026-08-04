@@ -23,7 +23,7 @@ Internal notes from the pre-0.2.0 audit and fix pass. Not a changelog (see `CHAN
 ## Known remaining limitations
 
 - No browser has ever rendered `dash-fluida`'s `FluidaGrid` in this environment. Everything verified about it is verified by code — real builds, real Python tests, a real dedicated frontend test suite — not by visual inspection.
-- `FluidaText`'s long-term purpose beyond applying typography tokens hasn't been reassessed; flagged for before v1.0, not touched here.
+- `FluidaText`'s future was decided this pass — see "FluidaText decision" below. No longer an open question for v1.0.
 - CI now covers Python and TypeScript separately but has not itself been run on GitHub's runners — only the equivalent commands, run locally, are confirmed.
 - Formatting drift (see above) is unresolved outside the files this pass touched.
 
@@ -31,4 +31,12 @@ Internal notes from the pre-0.2.0 audit and fix pass. Not a changelog (see `CHAN
 
 1. A dedicated `prettier --write` pass across the full repo, as its own commit, before enabling `prettier --check` in CI.
 2. Get `dash-fluida`'s `FluidaGrid` in front of a real browser at least once.
-3. Decide `FluidaText`'s future before v1.0 — keep, extend, or remove.
+## FluidaText decision
+
+**Kept as public API — not deprecated, not removed.**
+
+Reassessed by reading the actual implementation, its 9 tests, and every README claim, not just the open question in this file. It has one real, tested, coherent responsibility: apply `useFluidaLayout().typography.scale` as `fontSize`, on whichever element `as` requests, and expose the same number as `--fluida-type-scale` for composing proportional sizing on top of it — verified reactive to viewport changes, not just a static wrapper (see `updates font-size after a resize that changes the scale` in `FluidaText.test.tsx`).
+
+The genuine ambiguity wasn't whether it works — it does — it was whether its purpose was documented clearly enough for someone to judge when to reach for it instead of `useFluidaLayout()` directly. `packages/react/README.md` now says this explicitly: `FluidaText` is a convenience wrapper for flat, single-scale text (body copy, labels), not a type scale — `as="h1"` changes the element, not the size, and headings that need to look proportionally bigger need the custom property or the hook directly. That was previously true of the implementation but not said anywhere.
+
+No compatibility impact: the component's own behavior didn't change, only its documentation.

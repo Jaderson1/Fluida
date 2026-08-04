@@ -90,6 +90,28 @@ describe('FluidaText', () => {
     expect(ref.current).toBeInstanceOf(HTMLParagraphElement);
   });
 
+  it('applies the exact same font-size regardless of which element as requests', () => {
+    // The trade-off documented in this component's own comment and in
+    // packages/react/README.md, proven here rather than only stated:
+    // as="h1" changes the rendered element, not the size.
+    const { getByTestId: getP } = render(
+      <FluidaProvider>
+        <FluidaText as="p" data-testid="p">
+          content
+        </FluidaText>
+      </FluidaProvider>,
+    );
+    const { getByTestId: getH1 } = render(
+      <FluidaProvider>
+        <FluidaText as="h1" data-testid="h1">
+          content
+        </FluidaText>
+      </FluidaProvider>,
+    );
+
+    expect(getP('p').style.fontSize).toBe(getH1('h1').style.fontSize);
+  });
+
   it('forwards standard HTML props', () => {
     const { getByTestId } = render(
       <FluidaProvider>

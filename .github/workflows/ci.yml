@@ -214,3 +214,57 @@ jobs:
         run: |
           WHEEL=$(ls dist/*.whl)
           unzip -l "$WHEEL" | grep -q "dash_fluida.min.js" || (echo "::error::dash_fluida.min.js missing from wheel" && exit 1)
+
+  dash-e2e:
+    name: Dash E2E (real browser)
+    runs-on: ubuntu-latest
+    needs: typescript
+    # Separate job, not a step in dash-fluida above: installing a real
+    # browser is slow relative to the rest of the suite, and this is
+    # the one job whose failure should point specifically at rendered
+    # layout, not at anything else.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install JS dependencies and build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @fluida/core build
+          pnpm --filter dash-fluida-frontend build
+
+      - name: Install Python package with E2E extras
+        working-directory: python/dash-fluida
+        run: pip install -e ".[e2e]"
+
+      - name: Install Chromium
+        working-directory: python/dash-fluida
+        run: playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        working-directory: python/dash-fluida
+        run: pytest e2e/tests -v
+        env:
+          FLUIDA_E2E_BROWSERS_AVAILABLE: '1'
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: dash-e2e-diagnostics
+          path: python/dash-fluida/e2e/diagnostics/
+          if-no-files-found: ignore

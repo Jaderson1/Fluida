@@ -8,7 +8,7 @@ never a fixed pixel value or a CSS aspect-ratio guess.
 """
 
 import plotly.graph_objects as go
-from dash import Dash, dcc, html
+from dash import Dash, Input, Output, dcc, html
 from dash_fluida import FluidaGrid
 
 # --- min_item_width comparison ---
@@ -180,6 +180,7 @@ app.layout = html.Div(
                     aspect_ratio=CHART_ASPECT_RATIO,
                     min_item_width=CHART_MIN_ITEM_WIDTH,
                     auto_height=True,
+                    notify_layout_changes=True,
                     className="grid charts-grid",
                     children=[
                         _chart_card("chart-bar", "Bar", _bar_figure()),
@@ -190,7 +191,49 @@ app.layout = html.Div(
                 ),
             ]),
         ]),
+        # Invisible — exists only because clientside_callback requires a
+        # real Output; nothing reads its own value.
+        html.Div(id="chart-resize-sentinel", style={"display": "none"}),
     ],
+)
+
+# Plotly's own responsive ResizeObserver deliberately ignores its first
+# notification per chart (confirmed by reading the installed plotly.js:
+# `let B=!1; ...ResizeObserver((ee)=>{B?Q(ee):B=!0})` — the debounced
+# resize Q only runs from the second callback onward). If a chart's
+# card reaches its real, FluidaGrid-computed size within that same
+# first notification — plausible, since mounting and FluidaGrid's own
+# layout can resolve within the same browser frame — the chart never
+# gets a second notification to actually resize on, and stays at
+# whatever size it happened to render at first.
+#
+# This calls the same Plotly.Plots.resize the chart's own resize
+# path would call, but triggered by FluidaGrid's own notify_layout_changes
+# output — a real signal that the computed cell size actually changed,
+# not a blind timeout or a global window listener (responsive:true
+# uses ResizeObserver internally, not a window resize handler, so a
+# dispatched window 'resize' event would not even reach it).
+app.clientside_callback(
+    """
+    function(cellWidth, cellHeight, columns, rows) {
+        if (typeof window.Plotly === "undefined") {
+            return "";
+        }
+        const graphIds = ["chart-bar", "chart-line", "chart-scatter", "chart-donut"];
+        for (const id of graphIds) {
+            const el = document.getElementById(id);
+            if (el) {
+                window.Plotly.Plots.resize(el);
+            }
+        }
+        return "";
+    }
+    """,
+    Output("chart-resize-sentinel", "children"),
+    Input("grid-charts", "cellWidth"),
+    Input("grid-charts", "cellHeight"),
+    Input("grid-charts", "columns"),
+    Input("grid-charts", "rows"),
 )
 
 if __name__ == "__main__":

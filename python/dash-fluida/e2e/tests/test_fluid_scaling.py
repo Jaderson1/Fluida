@@ -71,25 +71,129 @@ def test_body_text_does_not_shrink_below_its_original_size_at_any_width(page: Pa
         assert size >= 16 - 0.5, f"at {width}x{height}, header p font-size ({size}px) is below its 16px floor"
 
 
-def test_no_disproportionate_empty_space_at_3840x2160(page: Page, demo_app_url):
-    """documentElement.scrollHeight should not vastly exceed what the
-    actual rendered content occupies — a regression of the
-    unconstrained 1fr row this fix caps would show up here as a huge
-    gap between the last real content and the bottom of the page.
+def _wait_for_layout_to_settle(page: Page, timeout_ms: int = 5000) -> None:
+    """Polls document.documentElement.scrollHeight until it stops
+    changing, instead of a flat sleep. Chart content resizes
+    asynchronously (Plotly's own ResizeObserver, plus the
+    clientside_callback that explicitly re-triggers it once
+    FluidaGrid's real layout is known — see demo/app.py) — measuring
+    scrollHeight before that settles would catch a real, transient
+    in-between state, not the bug this test exists to catch. This
+    waits for the actual condition ("the page stopped changing size"),
+    not an arbitrary duration.
+    """
+    page.wait_for_function(
+        """
+        () => {
+            if (window.__fluidaLastScrollHeight === undefined) {
+                window.__fluidaLastScrollHeight = document.documentElement.scrollHeight;
+                window.__fluidaStableCount = 0;
+                return false;
+            }
+            const current = document.documentElement.scrollHeight;
+            if (current === window.__fluidaLastScrollHeight) {
+                window.__fluidaStableCount = (window.__fluidaStableCount || 0) + 1;
+            } else {
+                window.__fluidaStableCount = 0;
+            }
+            window.__fluidaLastScrollHeight = current;
+            // Stable across 5 consecutive animation-frame-ish polls,
+            // not just one — one matching read could be a coincidence
+            // mid-transition, not settled.
+            return window.__fluidaStableCount >= 5;
+        }
+        """,
+        timeout=timeout_ms,
+    )
+
+
+def _find_deepest_bottom_element(page: Page) -> dict:
+    """Diagnostic, not an assertion: walks every element in the
+    document and reports whichever one has the largest
+    getBoundingClientRect().bottom — the direct answer to "which
+    element determines documentElement.scrollHeight" for whoever reads
+    a failure's diagnostic JSON, rather than leaving that to be
+    re-derived by hand from a screenshot.
+    """
+    return page.evaluate(
+        """
+        () => {
+            let deepest = null;
+            let maxBottom = -Infinity;
+            for (const el of document.querySelectorAll('*')) {
+                const rect = el.getBoundingClientRect();
+                if (rect.bottom > maxBottom && (rect.width > 0 || rect.height > 0)) {
+                    maxBottom = rect.bottom;
+                    deepest = {
+                        tag: el.tagName,
+                        id: el.id || null,
+                        className: typeof el.className === 'string' ? el.className : null,
+                        bottom: rect.bottom,
+                        top: rect.top,
+                        height: rect.height,
+                        computedHeight: getComputedStyle(el).height,
+                        computedPosition: getComputedStyle(el).position,
+                        computedOverflow: getComputedStyle(el).overflow,
+                    };
+                }
+            }
+            return deepest;
+        }
+        """
+    )
+
+
+def test_no_artificial_document_overflow_at_3840x2160(page: Page, demo_app_url, diagnostics_dir):
+    """Detect scrollable area not explained by the viewport or real content.
+
+    The previous metric, ``scrollHeight - last_panel_bottom``, treated
+    ordinary unfilled space inside a tall viewport as overflow. Root
+    ``scrollHeight`` is never smaller than the viewport, so a short page
+    at 3840x2160 naturally produced a large positive value even when no
+    element extended the document.
+
+    The correct comparison is against the greater of:
+    - the viewport height; and
+    - the deepest rendered element's bottom edge.
+
+    Any meaningful excess beyond that value is genuine artificial
+    document overflow.
     """
     page.set_viewport_size({"width": 3840, "height": 2160})
     page.goto(demo_app_url)
     page.wait_for_selector(".panel")
+    page.wait_for_selector(".js-plotly-plot svg.main-svg")
+    _wait_for_layout_to_settle(page)
 
-    last_panel_bottom = page.eval_on_selector_all(
-        ".panel", "els => Math.max(...els.map(el => el.getBoundingClientRect().bottom))"
-    )
+    viewport_height = page.evaluate("window.innerHeight")
+    deepest = _find_deepest_bottom_element(page)
     document_scroll_height = page.evaluate("document.documentElement.scrollHeight")
 
-    trailing_gap = document_scroll_height - last_panel_bottom
-    # Some bottom margin/padding is expected and fine; a gap anywhere
-    # near the height of an extra viewport is the bug this replaces.
-    assert trailing_gap < 400, (
-        f"{trailing_gap}px of empty space below the last panel at 3840x2160 — "
-        "the capped grid-template-rows may not be applied"
+    expected_minimum = max(viewport_height, deepest["bottom"])
+    artificial_overflow = document_scroll_height - expected_minimum
+
+    if artificial_overflow >= 100:
+        import json
+
+        diagnostic = {
+            "viewportHeight": viewport_height,
+            "documentScrollHeight": document_scroll_height,
+            "deepestElement": deepest,
+            "expectedMinimum": expected_minimum,
+            "artificialOverflow": artificial_overflow,
+        }
+        (diagnostics_dir / "artificial-overflow.json").write_text(
+            json.dumps(diagnostic, indent=2),
+            encoding="utf-8",
+        )
+        page.screenshot(
+            path=str(diagnostics_dir / "artificial-overflow-3840x2160.png"),
+            full_page=True,
+        )
+
+    assert artificial_overflow < 100, (
+        f"scrollHeight ({document_scroll_height}px) exceeds both the viewport "
+        f"({viewport_height}px) and the deepest rendered content "
+        f"({deepest['bottom']}px) by {artificial_overflow}px. "
+        "See artificial-overflow.json for diagnostics."
     )

@@ -98,6 +98,8 @@ export function App() {
             strategy="preserve-ratio"
             aspectRatio={16 / 9}
             gap={16}
+            minItemWidth={280}
+            autoHeight
             className="adaptive-grid"
           >
             <BarChartPlaceholder />

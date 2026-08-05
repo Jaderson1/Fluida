@@ -230,7 +230,15 @@ dd {
 }
 
 .adaptive-grid {
-  min-height: 220px;
+  /* A floor only for the instant before the first real ResizeObserver
+     measurement resolves — autoHeight computes an explicit height
+     from then on, so this is not the constraint it used to be. */
+  min-height: 60px;
+  /* Independent of .dashboard-shell's own width-cap ladder — keeps
+     charts from becoming disproportionately large at 4K, the same
+     way the Dash demo's .charts-panel caps its own charts. */
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .chart-placeholder {

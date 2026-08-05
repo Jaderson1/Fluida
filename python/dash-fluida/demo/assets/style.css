@@ -213,6 +213,19 @@ header p {
 
 .charts-grid {
   min-width: 0;
+  /*
+   * A second overflow boundary, not redundant with .chart-card's own:
+   * this one exists specifically so that if a chart's SVG is ever
+   * momentarily sized against an ancestor whose percentage height
+   * hasn't resolved yet (plausible right at mount, before
+   * FluidaGrid's own computed height is applied — the same window
+   * the Plotly resize fix elsewhere in this file targets), that
+   * transient oversized state can't expand this element's own
+   * scrollable footprint even for one frame. .charts-grid's own
+   * height still comes entirely from FluidaGrid's real computation;
+   * this only ever clips something that would otherwise be a bug.
+   */
+  overflow: hidden;
 }
 
 /* min-width/min-height: 0 let the card actually shrink to the grid's

@@ -18,6 +18,32 @@ body {
     -apple-system,
     'Segoe UI',
     sans-serif;
+
+  /*
+   * Fluid scaling for viewports beyond the width-cap ladder's own
+   * range below — that ladder already grows .dash-shell's max-width
+   * correctly up to 3000px at 3840px, but nothing here scaled with
+   * it: every font-size below was a fixed rem value, so text stayed
+   * exactly as small on a 4K/TV-sized viewport as on a laptop.
+   * clamp() grows each gently past its current fixed value instead
+   * of freezing there, without needing anything server-side — this
+   * demo has no equivalent to @fluida/react's FluidaProvider/
+   * useFluidaLayout typography scale to extend; it's plain CSS from
+   * the start.
+   *
+   * fluid-text-body has a 1rem (16px) floor specifically because
+   * header p previously had no explicit font-size at all —
+   * inheriting the browser's own 16px default — not because 16px is
+   * some general baseline; the other tokens floor at whatever their
+   * own selector's previous fixed value already was.
+   */
+  --fluid-heading: clamp(1.5rem, 1.2rem + 1vw, 2.75rem);
+  --fluid-text-body: clamp(1rem, 0.95rem + 0.2vw, 1.25rem);
+  --fluid-text-lg: clamp(0.8rem, 0.74rem + 0.25vw, 1.05rem);
+  --fluid-text-sm: clamp(0.75rem, 0.71rem + 0.15vw, 0.95rem);
+  --fluid-text-xs: clamp(0.7rem, 0.665rem + 0.12vw, 0.85rem);
+  --fluid-padding: clamp(10px, 10px + 1.25vw, 32px);
+  --fluid-gap: clamp(16px, 10px + 0.8vw, 32px);
 }
 
 /* Width-cap ladder for the page shell, purely a viewport concern. */
@@ -85,37 +111,32 @@ body {
 
 header h1 {
   margin: 0 0 4px;
-  font-size: 1.5rem;
+  font-size: var(--fluid-heading);
 }
 
 header p {
   margin: 0 0 16px;
   color: #555;
   max-width: 70ch;
+  font-size: var(--fluid-text-body);
 }
 
 .panel {
   background: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: var(--fluid-padding);
   margin-top: 16px;
   min-width: 0;
 }
 
-@media (min-width: 640px) {
-  .panel {
-    padding: 16px 20px;
-  }
-}
-
 .panel h2 {
-  font-size: 1rem;
+  font-size: var(--fluid-text-lg);
   margin: 0 0 8px;
 }
 
 .panel-note {
-  font-size: 0.85rem;
+  font-size: var(--fluid-text-sm);
   color: #555;
   max-width: 70ch;
   margin: 0 0 14px;
@@ -149,7 +170,7 @@ header p {
 }
 
 .compare-column h3 {
-  font-size: 0.8rem;
+  font-size: var(--fluid-text-lg);
   font-weight: 600;
   color: #555;
   margin: 0 0 8px;
@@ -211,7 +232,7 @@ header p {
 .chart-card-title {
   flex: 0 0 auto;
   padding: 6px 10px 2px;
-  font-size: 0.75rem;
+  font-size: var(--fluid-text-sm);
   font-weight: 600;
   color: #555;
 }

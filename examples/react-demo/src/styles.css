@@ -11,6 +11,41 @@
     -apple-system,
     'Segoe UI',
     sans-serif;
+
+  /*
+   * Fluid scaling for viewports beyond what @fluida/core's own
+   * defaults cover (typography and spacing both flatten at 1440px —
+   * see computeTypography.ts/computeSpacing.ts; that's a deliberate,
+   * documented default for a "normal monitor" range, not a bug, and
+   * @fluida/react's own FluidaProvider config is the intended way to
+   * extend it — this demo already does exactly that for
+   * container.tiers, going up to a 3000px cap at 3840px). Typography
+   * and spacing use plain CSS clamp() here instead of extending that
+   * same Provider config, specifically because interpolateClamped is
+   * a single linear ramp: widening its own min/max range would
+   * reshape the *entire* curve, including the 320-1440px portion
+   * that's already correct today — clamp() adds a second, gentler
+   * stage on top for wide screens without touching that at all.
+   *
+   * Values below are chosen to match FluidaText's current computed
+   * size closely at 1440px (compare to layout.typography.scale's own
+   * 1.25rem ceiling) and grow only modestly beyond it, capping well
+   * short of anything that reads as "everything just got huge".
+   */
+  --fluid-heading: clamp(1.5rem, 1.2rem + 1vw, 2.75rem);
+  /*
+   * fluid-text-body has a 1rem (16px) floor specifically because
+   * header p and dl previously had no explicit font-size at all —
+   * inheriting the browser's own 16px default — not because 16px is
+   * some general baseline. Using the same lower-floored token these
+   * already-smaller elements use would have shrunk them below what
+   * they already were on narrow screens.
+   */
+  --fluid-text-body: clamp(1rem, 0.95rem + 0.2vw, 1.25rem);
+  --fluid-text-lg: clamp(0.85rem, 0.78rem + 0.3vw, 1.15rem);
+  --fluid-text-sm: clamp(0.7rem, 0.66rem + 0.15vw, 0.9rem);
+  --fluid-padding: clamp(16px, 8px + 1vw, 40px);
+  --fluid-gap: clamp(8px, 4px + 0.5vw, 20px);
 }
 
 html,
@@ -36,13 +71,28 @@ body {
   z-index: 1;
 }
 
+/*
+ * FluidaText's own inline fontSize (layout.typography.scale, capped
+ * at 1.25rem — see the :root comment above) wins over a plain class
+ * rule here, since an inline style always outranks stylesheet
+ * specificity. !important is deliberate and scoped to exactly this
+ * one override, not a habit: this heading is the one place in the
+ * demo that most benefits from continuing to grow on very large
+ * screens, and there's no lower-specificity way to say "this rule
+ * beats an inline style" in CSS.
+ */
+header h1 {
+  font-size: var(--fluid-heading) !important;
+}
+
 header p {
   color: #555;
   max-width: 60ch;
+  font-size: var(--fluid-text-body);
 }
 
 .viewport-note {
-  font-size: 0.85rem;
+  font-size: var(--fluid-text-sm);
   background: #fff8e6;
   border: 1px solid #f0d78c;
   border-radius: 6px;
@@ -70,14 +120,14 @@ header p {
   background: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 16px 20px;
+  padding: var(--fluid-padding);
   flex: 1 1 320px;
   margin-top: 16px;
   min-width: 0;
 }
 
 .panel h2 {
-  font-size: 1rem;
+  font-size: var(--fluid-text-lg);
   margin: 0 0 12px;
   display: flex;
   align-items: center;
@@ -85,7 +135,7 @@ header p {
 }
 
 .count {
-  font-size: 0.75rem;
+  font-size: var(--fluid-text-sm);
   font-weight: normal;
   background: #eef1ff;
   color: #3b4ccf;
@@ -96,6 +146,7 @@ header p {
 dl {
   display: grid;
   grid-template-columns: auto 1fr;
+  font-size: var(--fluid-text-body);
   gap: 4px 12px;
   margin: 0;
 }
@@ -173,7 +224,7 @@ dd {
 
 }
 .adaptive-note {
-  font-size: 0.85rem;
+  font-size: var(--fluid-text-sm);
   color: #555;
   max-width: 60ch;
 }
@@ -245,7 +296,17 @@ dd {
 @media (min-width: 1200px) and (min-height: 650px) {
   .dashboard-shell {
     display: grid;
-    grid-template-rows: auto auto 1fr auto;
+    /*
+     * The third track (.grid-section) used to be a bare 1fr,
+     * soaking up literally all leftover vertical space — reasonable
+     * at 1920x1080, where that's a modest amount, but at a 2160px-tall
+     * viewport the exact same mechanism produces a gap large enough
+     * to look broken rather than spacious. minmax(auto, min(1fr, 55vh))
+     * still lets it grow to fill genuine leftover space at ordinary
+     * sizes, but stops claiming more than a little over half the
+     * viewport height once the viewport itself gets very tall.
+     */
+    grid-template-rows: auto auto minmax(auto, min(1fr, 55vh)) auto;
     /* A floor, not a forced height: real content taller than this
        still grows the grid and scrolls normally — min-height never
        clips or hides anything. */

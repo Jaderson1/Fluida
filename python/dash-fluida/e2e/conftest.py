@@ -12,6 +12,7 @@ import requests
 
 PLAIN_APP_PORT = 8051
 PLOTLY_APP_PORT = 8052
+DEMO_APP_PORT = 8054
 
 
 def _run_plain_app():
@@ -24,6 +25,19 @@ def _run_plotly_app():
     from e2e.fixtures.plotly_app import app
 
     app.run(debug=False, port=PLOTLY_APP_PORT, use_reloader=False)
+
+
+def _run_demo_app():
+    # The real demo/app.py, not an isolated fixture — used specifically
+    # to verify the demo's own CSS (fluid typography/spacing tokens),
+    # which the plain/plotly fixtures above deliberately don't include.
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "demo"))
+    from app import app
+
+    app.run(debug=False, port=DEMO_APP_PORT, use_reloader=False)
 
 
 def _wait_until_up(port: int, timeout_seconds: float = 15.0) -> None:
@@ -58,6 +72,18 @@ def plotly_app_url():
     try:
         _wait_until_up(PLOTLY_APP_PORT)
         yield f"http://127.0.0.1:{PLOTLY_APP_PORT}/"
+    finally:
+        process.terminate()
+        process.join(timeout=5)
+
+
+@pytest.fixture(scope="session")
+def demo_app_url():
+    process = multiprocessing.Process(target=_run_demo_app, daemon=True)
+    process.start()
+    try:
+        _wait_until_up(DEMO_APP_PORT)
+        yield f"http://127.0.0.1:{DEMO_APP_PORT}/"
     finally:
         process.terminate()
         process.join(timeout=5)

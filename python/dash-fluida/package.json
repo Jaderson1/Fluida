@@ -1,7 +1,7 @@
 {
   "name": "dash-fluida-frontend",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Private frontend build for the dash-fluida component. The generated bundle is included in the dash-fluida Python package under the dash_fluida module.",
   "type": "module",
   "scripts": {

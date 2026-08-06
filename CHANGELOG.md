@@ -1,3 +1,21 @@
+## [0.2.3] - 2026-08-06
+
+### Added
+- Accessibility support for Dash through `aria_label` and `extra_attrs`.
+- Additional shared conformance and property-based coverage.
+- Real-browser fluid scaling tests for large viewports.
+
+### Changed
+- Improved React and Dash demo behavior on large and 4K screens.
+- Rewrote the root README to document the full monorepo.
+- Aligned runtime and package version metadata across TypeScript and Python packages.
+
+### Fixed
+- React compatibility CI setup.
+- Dash Plotly resizing after layout stabilization.
+- Deterministic Dash bundle and source map generation.
+- ResizeObserver lifecycle edge cases after React component unmount.
+
 # Changelog
 
 All notable changes to this project are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).

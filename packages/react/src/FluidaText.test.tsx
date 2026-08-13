@@ -161,10 +161,10 @@ describe('FluidaText', () => {
     expect(getByTestId('text').style.fontSize).toBe('1rem');
 
     act(() => {
-      setViewport(1440, 900, 1); // exact default maximumWidth: scale = 1.25
+      setViewport(1440, 900, 1); // intermediate point on the current curve: scale = 1.2 (see computeTypography.test.ts)
       fireResize();
     });
 
-    expect(getByTestId('text').style.fontSize).toBe('1.25rem');
+    expect(getByTestId('text').style.fontSize).toBe('1.2rem');
   });
 });

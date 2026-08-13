@@ -267,3 +267,45 @@ describe('accessibility', () => {
     expect(element?.onkeypress).toBeNull();
   });
 });
+
+describe('large container sizing (no independent ceiling)', () => {
+  it('cell size keeps growing with the measured container at 4K/ultrawide-scale widths, with no cap of its own', () => {
+    installMockResizeObserver();
+    vi.useFakeTimers();
+
+    const { container } = render(
+      <FluidaGrid item_count={4} gap={16} strategy="fit">
+        <span>1</span>
+        <span>2</span>
+        <span>3</span>
+        <span>4</span>
+      </FluidaGrid>,
+    );
+
+    const element = container.querySelector('div') as HTMLElement;
+    const observer = getLiveObserverFor(element);
+
+    // FluidaGrid only ever calls computeContainerLayout with the real
+    // measured width/height — there is no fixed max-width or
+    // hardcoded cell-size ceiling anywhere in this component. Two
+    // widths at 4K/ultrawide scale, one clearly larger than the
+    // other, must produce a proportionally larger cell — not the
+    // same value both times.
+    act(() => {
+      observer?.trigger(2560, 1440);
+      vi.runAllTimers();
+    });
+    const at2560 = element.style.gridTemplateColumns;
+
+    act(() => {
+      observer?.trigger(3840, 2160);
+      vi.runAllTimers();
+    });
+    const at3840 = element.style.gridTemplateColumns;
+
+    expect(at3840).not.toBe(at2560);
+
+    const cellWidthAt = (value: string) => Number(value.match(/repeat\(\d+, ([\d.]+)px\)/)?.[1]);
+    expect(cellWidthAt(at3840)).toBeGreaterThan(cellWidthAt(at2560));
+  });
+});

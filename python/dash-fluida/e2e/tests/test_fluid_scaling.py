@@ -197,3 +197,76 @@ def test_no_artificial_document_overflow_at_3840x2160(page: Page, demo_app_url, 
         f"({deepest['bottom']}px) by {artificial_overflow}px. "
         "See artificial-overflow.json for diagnostics."
     )
+
+
+LARGE_VIEWPORTS = [
+    (1920, 1080),
+    (2560, 1440),
+    (3440, 1440),
+    (3840, 2160),
+]
+
+
+@pytest.mark.parametrize("viewport_width,viewport_height", LARGE_VIEWPORTS)
+def test_no_horizontal_overflow_at_large_viewports(page: Page, demo_app_url, viewport_width, viewport_height):
+    page.set_viewport_size({"width": viewport_width, "height": viewport_height})
+    page.goto(demo_app_url)
+    page.wait_for_selector(".panel")
+
+    scroll_width = page.evaluate("document.documentElement.scrollWidth")
+    assert scroll_width <= viewport_width + 2, (
+        f"documentElement.scrollWidth ({scroll_width}) exceeds viewport width "
+        f"({viewport_width}) at {viewport_width}x{viewport_height}"
+    )
+
+
+def test_usable_width_grows_progressively_across_1080p_to_4k(page: Page, demo_app_url):
+    """The regression this whole fix targets: usable content width must
+    keep increasing across these four viewports, not flatten at
+    whatever it reached around 1080p/1440p. Checks the property
+    (monotonic growth), not exact pixel values, which would make this
+    test brittle against unrelated spacing tweaks.
+    """
+    widths = []
+    for viewport_width, viewport_height in LARGE_VIEWPORTS:
+        page.set_viewport_size({"width": viewport_width, "height": viewport_height})
+        page.goto(demo_app_url)
+        page.wait_for_selector(".panel")
+        panel_width = page.eval_on_selector(".panel", "el => el.getBoundingClientRect().width")
+        widths.append(panel_width)
+
+    for i in range(1, len(widths)):
+        assert widths[i] >= widths[i - 1] - 1, (
+            f"usable panel width regressed going from {LARGE_VIEWPORTS[i-1]} "
+            f"({widths[i-1]}px) to {LARGE_VIEWPORTS[i]} ({widths[i]}px)"
+        )
+
+    # Not just non-decreasing — real growth from 1080p to 4K specifically,
+    # the two ends of the range this fix addresses.
+    assert widths[-1] > widths[0], (
+        f"usable width at 3840x2160 ({widths[-1]}px) is not greater than at "
+        f"1920x1080 ({widths[0]}px) — the large-viewport fix may not be applied"
+    )
+
+
+@pytest.mark.parametrize("viewport_width,viewport_height", LARGE_VIEWPORTS)
+def test_shell_stays_centered_at_large_viewports(page: Page, demo_app_url, viewport_width, viewport_height):
+    page.set_viewport_size({"width": viewport_width, "height": viewport_height})
+    page.goto(demo_app_url)
+    page.wait_for_selector("#e2e-shell") if page.query_selector("#e2e-shell") else page.wait_for_selector(
+        ".dash-shell, body > div"
+    )
+
+    shell = page.query_selector(".dash-shell") or page.query_selector("body > div")
+    assert shell is not None, "could not find the page shell element"
+    rect = shell.bounding_box()
+    assert rect is not None
+
+    left_margin = rect["x"]
+    right_margin = viewport_width - (rect["x"] + rect["width"])
+
+    if rect["width"] < viewport_width - 40:
+        assert abs(left_margin - right_margin) <= 20, (
+            f"shell not centered at {viewport_width}x{viewport_height}: "
+            f"left={left_margin}, right={right_margin}"
+        )

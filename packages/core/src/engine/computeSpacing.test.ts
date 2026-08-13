@@ -7,12 +7,18 @@ describe('computeSpacing', () => {
     expect(computeSpacing(320).page).toBe(16);
   });
 
+  it('returns an intermediate padding at the previous (now-intermediate) 1440px point', () => {
+    // Same reasoning as computeTypography's equivalent test: progress
+    // = (1440-320)/(2560-320) = 0.5, page = 16 + 0.5*(64-16) = 40.
+    expect(computeSpacing(1440).page).toBe(40);
+  });
+
   it('returns the maximum padding at the default maximum width', () => {
-    expect(computeSpacing(1440).page).toBe(48);
+    expect(computeSpacing(2560).page).toBe(64);
   });
 
   it('clamps beyond the default maximum width', () => {
-    expect(computeSpacing(2000).page).toBe(48);
+    expect(computeSpacing(3840).page).toBe(64);
   });
 
   it('respects a fully custom configuration', () => {

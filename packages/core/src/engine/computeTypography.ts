@@ -6,9 +6,9 @@ import type {
 import { interpolateClamped } from './interpolateClamped';
 
 export const DEFAULT_MINIMUM_WIDTH = 320;
-export const DEFAULT_MAXIMUM_WIDTH = 1440;
+export const DEFAULT_MAXIMUM_WIDTH = 2560;
 export const DEFAULT_MINIMUM_SCALE = 1;
-export const DEFAULT_MAXIMUM_SCALE = 1.25;
+export const DEFAULT_MAXIMUM_SCALE = 1.4;
 
 export function computeTypography(
   width: number,

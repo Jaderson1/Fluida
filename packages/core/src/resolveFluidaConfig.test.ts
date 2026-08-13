@@ -9,15 +9,15 @@ describe('resolveFluidaConfig — valid configuration', () => {
     expect(resolved.breakpoints).toEqual({ mobile: 0, tablet: 768, desktop: 1024 });
     expect(resolved.spacing).toEqual({
       minimumWidth: 320,
-      maximumWidth: 1440,
+      maximumWidth: 2560,
       minimumPadding: 16,
-      maximumPadding: 48,
+      maximumPadding: 64,
     });
     expect(resolved.typography).toEqual({
       minimumWidth: 320,
-      maximumWidth: 1440,
+      maximumWidth: 2560,
       minimumScale: 1,
-      maximumScale: 1.25,
+      maximumScale: 1.4,
     });
     expect(resolved.container.tiers.length).toBeGreaterThan(0);
   });
@@ -57,7 +57,7 @@ describe('resolveFluidaConfig — partial configuration', () => {
 
     expect(resolved.spacing).toEqual({
       minimumWidth: 320,
-      maximumWidth: 1440,
+      maximumWidth: 2560,
       minimumPadding: 4,
       maximumPadding: 8,
     });

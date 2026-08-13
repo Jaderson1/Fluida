@@ -19,8 +19,15 @@ describe('computeContainer', () => {
     expect(computeContainer(1279).maxWidth).toBe(960);
   });
 
+  it('uses each tier at its own width, up through the largest defined tier', () => {
+    expect(computeContainer(1920).maxWidth).toBe(1600);
+    expect(computeContainer(2560).maxWidth).toBe(2000);
+    expect(computeContainer(3440).maxWidth).toBe(2600);
+    expect(computeContainer(3840).maxWidth).toBe(2900);
+  });
+
   it('uses the largest tier for any width beyond it', () => {
-    expect(computeContainer(3440).maxWidth).toBe(1320);
+    expect(computeContainer(5000).maxWidth).toBe(2900);
   });
 
   it('respects a fully custom tier list', () => {

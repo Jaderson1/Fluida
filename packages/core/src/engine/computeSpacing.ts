@@ -6,9 +6,9 @@ import type {
 import { interpolateClamped } from './interpolateClamped';
 
 export const DEFAULT_MINIMUM_WIDTH = 320;
-export const DEFAULT_MAXIMUM_WIDTH = 1440;
+export const DEFAULT_MAXIMUM_WIDTH = 2560;
 export const DEFAULT_MINIMUM_PADDING = 16;
-export const DEFAULT_MAXIMUM_PADDING = 48;
+export const DEFAULT_MAXIMUM_PADDING = 64;
 
 export function computeSpacing(
   width: number,

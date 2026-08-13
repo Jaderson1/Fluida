@@ -290,9 +290,9 @@ dd {
  * layout tuned for the tightest case in a much broader range.
  * min-height stops this matching typical laptop screens that are
  * wide but still short enough to need the tighter compact treatment
- * above. The container's own max-width comes from this demo's config
- * in App.tsx (extra tiers past Core's default 1320px cap, going all
- * the way to a 3000px cap at 4K), not from anything here.
+ * above. The container's own max-width comes from @fluida/core's own
+ * default container tiers (packages/core/src/engine/defaultContainerTiers.ts),
+ * not from anything in this stylesheet or App.tsx.
  *
  * grid-template-rows has four tracks, not three — .dashboard-shell
  * has four direct children (header, .panels-row, .grid-section,

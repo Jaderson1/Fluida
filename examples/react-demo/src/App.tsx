@@ -21,24 +21,7 @@ export function App() {
   const cells = Array.from({ length: cellCount }, (_, index) => index + 1);
 
   return (
-    <FluidaProvider
-      config={{
-        container: {
-          tiers: [
-            { minimumWidth: 0, containerMaxWidth: 480 },
-            { minimumWidth: 640, containerMaxWidth: 640 },
-            { minimumWidth: 768, containerMaxWidth: 720 },
-            { minimumWidth: 1024, containerMaxWidth: 960 },
-            { minimumWidth: 1280, containerMaxWidth: 1140 },
-            { minimumWidth: 1536, containerMaxWidth: 1320 },
-            { minimumWidth: 1800, containerMaxWidth: 1600 },
-            { minimumWidth: 2400, containerMaxWidth: 2000 },
-            { minimumWidth: 2560, containerMaxWidth: 2200 },
-            { minimumWidth: 3840, containerMaxWidth: 3000 },
-          ],
-        },
-      }}
-    >
+    <FluidaProvider>
       <BreakpointBanner />
 
       <FluidaContainer className="dashboard-shell">

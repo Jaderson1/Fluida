@@ -6,6 +6,7 @@ import { FluidaAdaptiveGrid } from './FluidaAdaptiveGrid';
 import {
   getLiveObserverFor,
   installMockResizeObserver,
+  MockResizeObserver,
   removeMockResizeObserver,
 } from './testUtils/mockResizeObserver';
 
@@ -681,6 +682,96 @@ describe('itemCount vs. rendered children (development warning)', () => {
 
       vi.useRealTimers();
     });
+  });
+});
+
+describe('Strict Mode hardening (mount/unmount/remount + resize + late callback)', () => {
+  it('mount, resize, unmount, remount, resize again — exactly one live observer at every point, no orphans', () => {
+    installMockResizeObserver();
+    vi.useFakeTimers();
+
+    const { getByTestId, unmount } = render(
+      <StrictMode>
+        <FluidaAdaptiveGrid itemCount={4} strategy="fit" gap={0} data-testid="grid">
+          {Array.from({ length: 4 }, (_, i) => (
+            <span key={i}>{i}</span>
+          ))}
+        </FluidaAdaptiveGrid>
+      </StrictMode>,
+    );
+
+    const countLiveObservers = (element: Element) =>
+      MockResizeObserver.instances.filter((i) => i.observedElement === element && !i.disconnected).length;
+
+    const element = getByTestId('grid');
+    expect(countLiveObservers(element)).toBe(1);
+
+    act(() => {
+      getLiveObserverFor(element)?.trigger(800, 800);
+      vi.runAllTimers();
+    });
+    expect(countLiveObservers(element)).toBe(1);
+
+    unmount();
+    expect(MockResizeObserver.instances.some((i) => i.observedElement === element && !i.disconnected)).toBe(
+      false,
+    );
+
+    // A genuine remount — a fresh render() after unmount(), not
+    // rerender() on the now-torn-down root.
+    const { getByTestId: getByTestIdAfterRemount } = render(
+      <StrictMode>
+        <FluidaAdaptiveGrid itemCount={4} strategy="fit" gap={0} data-testid="grid">
+          {Array.from({ length: 4 }, (_, i) => (
+            <span key={i}>{i}</span>
+          ))}
+        </FluidaAdaptiveGrid>
+      </StrictMode>,
+    );
+    const remountedElement = getByTestIdAfterRemount('grid');
+
+    act(() => {
+      getLiveObserverFor(remountedElement)?.trigger(1200, 1200);
+      vi.runAllTimers();
+    });
+    expect(countLiveObservers(remountedElement)).toBe(1);
+  });
+
+  it('a callback delivered after unmount, under Strict Mode, updates nothing and throws nothing', () => {
+    installMockResizeObserver();
+    vi.useFakeTimers();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { getByTestId, unmount } = render(
+      <StrictMode>
+        <FluidaAdaptiveGrid itemCount={4} strategy="fit" gap={0} data-testid="grid">
+          {Array.from({ length: 4 }, (_, i) => (
+            <span key={i}>{i}</span>
+          ))}
+        </FluidaAdaptiveGrid>
+      </StrictMode>,
+    );
+
+    const element = getByTestId('grid');
+    const observer = getLiveObserverFor(element);
+
+    act(() => {
+      observer?.trigger(500, 500);
+      vi.runAllTimers();
+    });
+    const columnsBeforeUnmount = element.style.gridTemplateColumns;
+
+    unmount();
+
+    expect(() => {
+      act(() => {
+        observer?.trigger(1600, 1600);
+        vi.runAllTimers();
+      });
+    }).not.toThrow();
+
+    expect(element.style.gridTemplateColumns).toBe(columnsBeforeUnmount);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 });
 

@@ -148,6 +148,10 @@ const layout = useFluidaContainerLayout(
 - `useFluidaLayout()`
 - `useFluidaSnapshot()`
 
+## Hidden containers
+
+A container measured while `display: none` (or any other zero-size state) reports `0` through `ResizeObserver`, the same way it does before any measurement has arrived yet — `FluidaAdaptiveGrid` and the container hooks handle this without any special-casing on your part. When the element becomes visible, the next real measurement arrives normally and the layout converges to what a direct mount at that size would have produced, with no remount needed.
+
 ## CSS notes
 
 ```css

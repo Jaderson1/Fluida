@@ -19,7 +19,7 @@ function Debug() {
 
 function extractPayload(html: string): {
   snapshot: { width: number; height: number; orientation: string; pixelRatio: number };
-  layout: { breakpoint: string; spacing: { page: number } };
+  layout: { breakpoint: string; spacing: { page: number }; typography: { scale: number } };
 } {
   const match = html.match(/<div data-testid="debug">(.*?)<\/div>/);
   const rawJson = (match?.[1] ?? '').replace(/&quot;/g, '"');
@@ -57,5 +57,21 @@ describe('FluidaProvider (server-side rendering)', () => {
     const payload = extractPayload(html);
 
     expect(payload.layout.spacing.page).toBe(4);
+  });
+
+  it('the height-aware bonus adds nothing to the server snapshot — width and height are both 0 there', () => {
+    const html = renderToString(
+      <FluidaProvider>
+        <Debug />
+      </FluidaProvider>,
+    );
+
+    const payload = extractPayload(html);
+
+    // width=0 is below the 1920px height-bonus floor regardless of
+    // height — server-rendered typography/spacing are exactly the
+    // same values they were before height-aware scaling existed.
+    expect(payload.layout.typography.scale).toBe(1);
+    expect(payload.layout.spacing.page).toBe(16);
   });
 });

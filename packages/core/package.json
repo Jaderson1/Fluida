@@ -49,6 +49,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "benchmark": "npx tsx benchmark/computeLayout.bench.ts",
     "prepack": "node -e \"if (!/pnpm/.test(process.env.npm_config_user_agent || '')) { console.error('\\n\\u274c This package must be packed/published with pnpm (pnpm pack / pnpm publish), not plain npm.\\n   @fluida/core has no workspace: dependencies itself, but this guard is kept identical across both packages so the rule is never accidentally different in one of them.\\n'); process.exit(1); }\""
   },
   "devDependencies": {

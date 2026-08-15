@@ -139,4 +139,21 @@ describe('FluidaStack', () => {
 
     expect(ref.current).toBeInstanceOf(HTMLDivElement);
   });
+
+  describe('accessibility', () => {
+    it('sets no role and forwards arbitrary aria-*/data-* attributes', () => {
+      setViewport(1024, 768, 1);
+      const { getByTestId } = render(
+        <FluidaProvider>
+          <FluidaStack data-testid="stack" aria-label="Item list">
+            item
+          </FluidaStack>
+        </FluidaProvider>,
+      );
+
+      const element = getByTestId('stack');
+      expect(element.hasAttribute('role')).toBe(false);
+      expect(element.getAttribute('aria-label')).toBe('Item list');
+    });
+  });
 });

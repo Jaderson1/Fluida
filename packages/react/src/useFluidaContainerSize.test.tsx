@@ -231,4 +231,143 @@ describe('useFluidaContainerSize', () => {
       }
     });
   });
+
+  describe('hidden → visible (and back) convergence', () => {
+    it.each([
+      ['0 → 320', 0, 320],
+      ['0 → 768', 0, 768],
+      ['0 → 1920', 0, 1920],
+    ])('%s: converges to the real size with no NaN/Infinity at any point', (_label, hiddenWidth, visibleWidth) => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+      const sizes: Array<{ width: number; height: number }> = [];
+
+      const { getByTestId } = render(<Probe onSize={(size) => sizes.push(size)} />);
+      const element = getByTestId('probe');
+      const observer = getLiveObserverFor(element);
+
+      // display:none reports 0x0 through ResizeObserver — the same
+      // value this hook already starts at before any measurement, so
+      // this is exercising the same code path a real hidden mount
+      // would, not a special case.
+      act(() => {
+        observer?.trigger(hiddenWidth, 0);
+        vi.runAllTimers();
+      });
+
+      act(() => {
+        observer?.trigger(visibleWidth, 400);
+        vi.runAllTimers();
+      });
+
+      const finalSize = sizes.at(-1);
+      expect(finalSize).toEqual({ width: visibleWidth, height: 400 });
+
+      for (const size of sizes) {
+        expect(Number.isFinite(size.width)).toBe(true);
+        expect(Number.isFinite(size.height)).toBe(true);
+      }
+    });
+
+    it.each([
+      ['768 → 0 → 768', 768],
+      ['1920 → 0 → 2560', 1920],
+    ])('%s: hiding and reshowing converges to the final real size, without a remount', (_label, initialWidth) => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+      const sizes: Array<{ width: number; height: number }> = [];
+      const finalWidth = initialWidth === 768 ? 768 : 2560;
+
+      const { getByTestId } = render(<Probe onSize={(size) => sizes.push(size)} />);
+      const element = getByTestId('probe');
+      const observer = getLiveObserverFor(element);
+      const observerInstanceCountBefore = MockResizeObserver.instances.length;
+
+      act(() => {
+        observer?.trigger(initialWidth, 500);
+        vi.runAllTimers();
+      });
+      act(() => {
+        observer?.trigger(0, 0); // hidden
+        vi.runAllTimers();
+      });
+      act(() => {
+        observer?.trigger(finalWidth, 500); // visible again
+        vi.runAllTimers();
+      });
+
+      expect(sizes.at(-1)).toEqual({ width: finalWidth, height: 500 });
+      // No remount: the same observer instance handled the whole
+      // sequence — no new ResizeObserver was created along the way.
+      expect(MockResizeObserver.instances.length).toBe(observerInstanceCountBefore);
+    });
+
+    it('a size reached via hidden→visible matches a direct mount at that same size', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+
+      const viaHidden: Array<{ width: number; height: number }> = [];
+      const { getByTestId: getByTestIdA } = render(<Probe onSize={(size) => viaHidden.push(size)} />);
+      const elementA = getByTestIdA('probe');
+      const observerA = getLiveObserverFor(elementA);
+
+      act(() => {
+        observerA?.trigger(0, 0);
+        vi.runAllTimers();
+      });
+      act(() => {
+        observerA?.trigger(1920, 1080);
+        vi.runAllTimers();
+      });
+
+      cleanup();
+
+      const direct: Array<{ width: number; height: number }> = [];
+      const { getByTestId: getByTestIdB } = render(<Probe onSize={(size) => direct.push(size)} />);
+      const elementB = getByTestIdB('probe');
+      const observerB = getLiveObserverFor(elementB);
+
+      act(() => {
+        observerB?.trigger(1920, 1080);
+        vi.runAllTimers();
+      });
+
+      expect(viaHidden.at(-1)).toEqual(direct.at(-1));
+    });
+  });
+
+  describe('resize storm (many measurements before one frame)', () => {
+    it('a realistic fast-drag sequence (320→480→768→1024→1366→1920→2560) schedules exactly one frame and applies only the last value', () => {
+      installMockResizeObserver();
+      vi.useFakeTimers();
+      const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame');
+      const sizes: Array<{ width: number; height: number }> = [];
+
+      const { getByTestId } = render(<Probe onSize={(size) => sizes.push(size)} />);
+      const element = getByTestId('probe');
+      const observer = getLiveObserverFor(element);
+
+      const sequence = [320, 480, 768, 1024, 1366, 1920, 2560];
+
+      act(() => {
+        for (const width of sequence) {
+          observer?.trigger(width, 800);
+        }
+      });
+
+      expect(rafSpy).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        vi.runAllTimers();
+      });
+
+      expect(sizes.at(-1)).toEqual({ width: 2560, height: 800 });
+      // Only two real notifications ever happened: the initial 0x0
+      // mount value, and the one coalesced update for the whole
+      // sequence — not one per triggered measurement.
+      expect(sizes.length).toBe(2);
+
+      rafSpy.mockRestore();
+    });
+  });
 });

@@ -151,9 +151,15 @@ app.layout = html.Div([
 
 ## Large-screen and 4K behavior
 
-Fluida has been checked at mobile, tablet, notebook, 1080p, 1440p, and 4K (3840×2160) viewport sizes, in both the React and Dash demos — this is validation on the demos included in this repository, not a guarantee about every physical TV or display Fluida might run on.
+Fluida has been checked at mobile, tablet, notebook, 1080p, 1440p, ultrawide (3440×1440), and 4K (3840×2160) viewport sizes, in both the React and Dash demos — this is validation on the demos included in this repository, not a guarantee about every physical TV or display Fluida might run on.
+
+Container width (`container.maxWidth`) is driven by width alone, through a tiered scale that keeps growing past what a typical "desktop" breakpoint would otherwise flatten at — a 3840px-wide viewport gets meaningfully more usable width than a 1536px one, not the same value both would have gotten from a single "desktop" tier.
+
+Typography scale and page spacing grow with width the same way, up to a bounded ceiling — and, only once width is already in the large-display range, also grow a little further with *height*, within its own separate, smaller, bounded range. This exists specifically because two displays can share a width (an ultrawide monitor and a 4K TV can both be 3840px wide) while differing meaningfully in how much vertical room they actually have — a 3840×1440 ultrawide and a 3840×2160 4K display get the same `container.maxWidth`, but the 4K one, having more height, gets a modestly larger typography scale and spacing. This height effect never applies below the large-display width threshold — a tall phone in portrait is not treated as spacious just because its height is large relative to its own width.
 
 Fluida's own responsibility ends at computing layout: columns, cell size, typography scale, spacing. What renders *inside* a cell — a Plotly chart, a map, a video embed — is the content's own responsibility. A chart library with its own internal sizing behavior (for example, one that only reacts to its first resize notification) needs its own resize handling to fully benefit from a cell that Fluida resizes after the fact; this repository's Dash demo includes a real example of exactly that integration.
+
+Fluida complements CSS and container queries — it computes values you apply, rather than replacing the layout mechanisms browsers already provide.
 
 ## Monorepo structure
 

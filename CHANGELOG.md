@@ -1,4 +1,23 @@
-## [0.2.3] - 2026-08-06
+## [Unreleased] - 0.2.4
+
+### Fixed
+- `@fluida/core`'s default container width tiers stopped growing at 1536px — any viewport from 1536px through 4K (3840px) received the exact same `container.maxWidth`. Extended the default tiers through 3840px.
+- `computeTypography`/`computeSpacing` defaults stopped growing at 1440px width, for the same reason.
+- A `pytest-playwright` dependency was missing from `dash-fluida`'s `e2e` extras — every E2E test would have failed at fixture resolution before ever reaching a real browser.
+
+### Changed
+- `typography.scale` and `spacing.page` now also grow a little further with viewport *height*, but only once width is already in the large-display range (≥1920px) and only within their own small, bounded range — this is what lets a 3840×2160 display end up modestly denser than a 3440×1440 one sharing the same width. `container.maxWidth` is unaffected by height. Internal change; no new public config field.
+- `examples/react-demo` no longer overrides `container.tiers` manually — it now relies on `@fluida/core`'s own (now-fixed) defaults.
+
+### Tests
+- Property-based and explicit coverage for large-viewport container/typography/spacing progression, including ultrawide vs. 4K distinction, in both `@fluida/core` and `@fluida/react`.
+- Hidden→visible container convergence (mount at 0, becoming visible, hidden→visible→hidden cycles) — confirmed already correct, not a fix.
+- Explicit resize-storm coalescing test using a full fast-drag sequence (320→2560px).
+- Extreme container width coverage (0 through 10000px) across all four layout strategies.
+- SSR and React Strict Mode coverage extended for the height-aware behavior specifically.
+- Accessibility baseline tests added for `FluidaContainer`, `FluidaGrid` (viewport), and `FluidaStack` — confirmed already correct (all forward `aria-*`/`data-*` via prop spreading), not a fix.
+
+
 
 ### Added
 - Accessibility support for Dash through `aria_label` and `extra_attrs`.

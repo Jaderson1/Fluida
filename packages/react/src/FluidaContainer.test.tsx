@@ -174,3 +174,19 @@ describe('FluidaContainer — large viewport progression (ultrawide, 4K)', () =>
     expect(ultrawideMaxWidth).not.toBe(uhdMaxWidth);
   });
 });
+
+describe('FluidaContainer — accessibility', () => {
+  it('sets no role and forwards arbitrary aria-*/data-* attributes', () => {
+    const { getByTestId } = render(
+      <FluidaProvider>
+        <FluidaContainer data-testid="container" aria-label="Main content" role={undefined}>
+          content
+        </FluidaContainer>
+      </FluidaProvider>,
+    );
+
+    const element = getByTestId('container');
+    expect(element.hasAttribute('role')).toBe(false);
+    expect(element.getAttribute('aria-label')).toBe('Main content');
+  });
+});

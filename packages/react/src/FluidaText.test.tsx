@@ -168,3 +168,41 @@ describe('FluidaText', () => {
     expect(getByTestId('text').style.fontSize).toBe('1.2rem');
   });
 });
+
+describe('FluidaText — height bonus reaches the DOM', () => {
+  it('a vertical-only resize (width unchanged) changes font-size once width already qualifies', () => {
+    setViewport(3840, 1080, 1); // width qualifies, height at the no-bonus floor
+    const { getByTestId } = render(
+      <FluidaProvider>
+        <FluidaText data-testid="text">content</FluidaText>
+      </FluidaProvider>,
+    );
+    const beforeFontSize = getByTestId('text').style.fontSize;
+
+    act(() => {
+      setViewport(3840, 2160, 1); // width unchanged — only height moved, to the bonus ceiling
+      fireResize();
+    });
+
+    const afterFontSize = getByTestId('text').style.fontSize;
+    expect(afterFontSize).not.toBe(beforeFontSize);
+    expect(parseFloat(afterFontSize)).toBeGreaterThan(parseFloat(beforeFontSize));
+  });
+
+  it('a vertical-only resize below the 1920px width floor changes nothing', () => {
+    setViewport(1366, 700, 1);
+    const { getByTestId } = render(
+      <FluidaProvider>
+        <FluidaText data-testid="text">content</FluidaText>
+      </FluidaProvider>,
+    );
+    const beforeFontSize = getByTestId('text').style.fontSize;
+
+    act(() => {
+      setViewport(1366, 2000, 1); // width still below the floor
+      fireResize();
+    });
+
+    expect(getByTestId('text').style.fontSize).toBe(beforeFontSize);
+  });
+});

@@ -281,3 +281,74 @@ jobs:
           name: dash-e2e-diagnostics
           path: python/dash-fluida/e2e/diagnostics/
           if-no-files-found: ignore
+
+  package-smoke-test:
+    name: Package smoke test (consumer, not workspace)
+    runs-on: ubuntu-latest
+    needs: typescript
+    # Packs and installs the real tarballs/wheels in a clean directory
+    # outside the monorepo — proves what a consumer would actually get,
+    # not just that the source builds inside the workspace.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install and build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @fluida/core build
+          pnpm --filter @fluida/react build
+
+      - name: Pack npm tarballs
+        run: |
+          mkdir -p /tmp/npm-smoke
+          pnpm --filter @fluida/core pack --pack-destination /tmp/npm-smoke
+          pnpm --filter @fluida/react pack --pack-destination /tmp/npm-smoke
+
+      - name: Install tarballs in a clean, isolated project and smoke test
+        run: |
+          mkdir -p /tmp/smoke-project && cd /tmp/smoke-project
+          npm init -y --silent
+          npm install --silent /tmp/npm-smoke/fluida-core-*.tgz /tmp/npm-smoke/fluida-react-*.tgz react@19 react-dom@19
+          node -e "
+            const { computeContainerLayout } = require('@fluida/core');
+            const result = computeContainerLayout(800, 600, { itemCount: 4, strategy: 'fit' });
+            if (!Number.isFinite(result.columns)) throw new Error('smoke test failed: ' + JSON.stringify(result));
+            console.log('npm smoke test OK:', JSON.stringify(result));
+          "
+
+      - name: Build Python wheels
+        run: |
+          python -m venv /tmp/py-build
+          /tmp/py-build/bin/pip install --quiet build
+          cd python/fluida-core && /tmp/py-build/bin/python -m build
+          cd ../dash-fluida && /tmp/py-build/bin/python -m build
+
+      - name: Install wheels in a clean venv and smoke test
+        run: |
+          python -m venv /tmp/py-smoke
+          /tmp/py-smoke/bin/pip install --quiet python/fluida-core/dist/*.whl python/dash-fluida/dist/*.whl
+          /tmp/py-smoke/bin/python -c "
+          import fluida_core, dash_fluida
+          assert fluida_core.__version__, 'fluida_core.__version__ is empty'
+          assert dash_fluida.__version__, 'dash_fluida.__version__ is empty'
+          r = fluida_core.compute_container_layout(800, 600, item_count=4, strategy='fit')
+          assert r.columns > 0
+          grid = dash_fluida.FluidaGrid(item_count=4, strategy='fit')
+          assert grid.to_plotly_json()['props']['item_count'] == 4
+          print('Python smoke test OK:', fluida_core.__version__, dash_fluida.__version__)
+          "

@@ -107,3 +107,20 @@ describe('FluidaGrid', () => {
     );
   });
 });
+
+describe('FluidaGrid — accessibility', () => {
+  it('sets no role and forwards arbitrary aria-*/data-* attributes', () => {
+    setViewport(1200, 800, 1);
+    const { getByTestId } = render(
+      <FluidaProvider>
+        <FluidaGrid data-testid="grid" aria-label="Card grid">
+          item
+        </FluidaGrid>
+      </FluidaProvider>,
+    );
+
+    const element = getByTestId('grid');
+    expect(element.hasAttribute('role')).toBe(false);
+    expect(element.getAttribute('aria-label')).toBe('Card grid');
+  });
+});

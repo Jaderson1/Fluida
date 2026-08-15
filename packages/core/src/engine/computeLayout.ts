@@ -12,14 +12,15 @@ import { DEFAULT_BREAKPOINTS } from './defaultBreakpoints';
 
 export function computeLayout(
   width: number,
+  height: number,
   config: EngineConfig = {},
 ): LayoutTokens {
   const breakpoints = config.breakpoints ?? DEFAULT_BREAKPOINTS;
 
   const breakpoint = computeBreakpoint(width, breakpoints);
   const columns = computeColumns(breakpoint);
-  const spacing = computeSpacing(width, config.spacing);
-  const typography = computeTypography(width, config.typography);
+  const spacing = computeSpacing(width, height, config.spacing);
+  const typography = computeTypography(width, height, config.typography);
   const container = computeContainer(width, config.container);
 
   return {

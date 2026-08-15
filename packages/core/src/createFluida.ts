@@ -48,9 +48,9 @@ export function createFluida(config: FluidaConfig = {}): FluidaInstance {
   const engineConfig = resolveFluidaConfig(config);
 
   let currentSnapshot = reader.readEnvironment();
-  let currentLayout = computeLayout(currentSnapshot.width, engineConfig);
+  let currentLayout = computeLayout(currentSnapshot.width, currentSnapshot.height, engineConfig);
 
-  const serverLayout = computeLayout(SERVER_SNAPSHOT.width, engineConfig);
+  const serverLayout = computeLayout(SERVER_SNAPSHOT.width, SERVER_SNAPSHOT.height, engineConfig);
 
   let isDestroyed = false;
   let isListening = false;
@@ -79,7 +79,7 @@ if (areSnapshotsEqual(currentSnapshot, nextSnapshot)) return;
 
     currentSnapshot = nextSnapshot;
 
-    const nextLayout = computeLayout(nextSnapshot.width, engineConfig);
+    const nextLayout = computeLayout(nextSnapshot.width, nextSnapshot.height, engineConfig);
     if (!areLayoutsEqual(currentLayout, nextLayout)) {
       currentLayout = nextLayout;
     }

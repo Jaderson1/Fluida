@@ -678,3 +678,68 @@ describe('computeContainerLayout', () => {
     });
   });
 });
+
+describe('extreme container widths (0 through 10000)', () => {
+  const EXTREME_WIDTHS = [0, 1, 10, 100, 320, 768, 1920, 3840, 10000];
+  const STRATEGIES = ['fit', 'fill', 'balanced', 'preserve-ratio'] as const;
+
+  it.each(EXTREME_WIDTHS.flatMap((width) => STRATEGIES.map((strategy) => [width, strategy] as const)))(
+    'width=%s, strategy=%s: no NaN, no Infinity, no negative dimension',
+    (width, strategy) => {
+      const result = computeContainerLayout(width, width, {
+        itemCount: 5,
+        strategy,
+        aspectRatio: 16 / 9,
+        gap: 16,
+      });
+
+      expect(Number.isFinite(result.columns)).toBe(true);
+      expect(Number.isFinite(result.rows)).toBe(true);
+      expect(Number.isFinite(result.cellWidth)).toBe(true);
+      expect(Number.isFinite(result.cellHeight)).toBe(true);
+      expect(result.columns).toBeGreaterThan(0);
+      expect(result.rows).toBeGreaterThan(0);
+      expect(result.cellWidth).toBeGreaterThanOrEqual(0);
+      expect(result.cellHeight).toBeGreaterThanOrEqual(0);
+    },
+  );
+
+  it('0px is treated as a transitional not-yet-measured state, not a configuration error', () => {
+    expect(() => computeContainerLayout(0, 0, { itemCount: 4 })).not.toThrow();
+    const result = computeContainerLayout(0, 0, { itemCount: 4 });
+    expect(result.cellWidth).toBe(0);
+    expect(result.cellHeight).toBe(0);
+    expect(result.columns).toBeGreaterThan(0);
+  });
+
+  it('column count grows monotonically as width grows from 0 to 10000, for a fixed itemCount', () => {
+    const columns = EXTREME_WIDTHS.map(
+      (width) => computeContainerLayout(width, 800, { itemCount: 20, strategy: 'fit' }).columns,
+    );
+    for (let i = 1; i < columns.length; i += 1) {
+      expect(columns[i]).toBeGreaterThanOrEqual(columns[i - 1] as number);
+    }
+  });
+
+  it('width=10000 with a tiny minItemWidth produces a sane, bounded result, not a runaway column count', () => {
+    const result = computeContainerLayout(10000, undefined, {
+      itemCount: 5,
+      strategy: 'fit',
+      minItemWidth: 1,
+    });
+    // Never more columns than there are items, regardless of how
+    // many a purely width/minItemWidth-driven count could allow.
+    expect(result.columns).toBeLessThanOrEqual(5);
+    expect(Number.isFinite(result.cellWidth)).toBe(true);
+  });
+
+  it('extreme height (10000) behaves the same way extreme width does — no special-casing by axis', () => {
+    const result = computeContainerLayout(800, 10000, {
+      itemCount: 5,
+      strategy: 'fill',
+      gap: 16,
+    });
+    expect(Number.isFinite(result.cellHeight)).toBe(true);
+    expect(result.cellHeight).toBeGreaterThan(0);
+  });
+});

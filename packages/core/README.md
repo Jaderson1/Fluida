@@ -73,6 +73,8 @@ interface FluidaConfig {
 }
 ```
 
+`typography.scale` and `spacing.page` also grow a little further with viewport *height*, but only once width is already in the large-display range (≥1920px) — an internal behavior, not something exposed in this config. `container.maxWidth` is never affected by height. See the root README's "Large-screen and 4K behavior" section for why.
+
 ## Container-based layout
 
 ### `computeContainerLayout(containerWidth, containerHeight, options)`

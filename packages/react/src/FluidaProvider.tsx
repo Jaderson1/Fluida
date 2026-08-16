@@ -35,14 +35,12 @@ export function FluidaProvider(props: FluidaProviderProps): ReactNode {
   const pendingDestroyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // If a previous cleanup scheduled a destroy and this setup is
-    // now running again, that destroy was never real — cancel it.
-    // This is the only case where that can happen: Strict Mode's
-    // replay runs entirely synchronously (confirmed, not assumed —
-    // see FluidaProvider.strictmode.test.tsx), so a setup that fires
-    // again before the deferred destroy's timeout has elapsed can
-    // only mean the "unmount" that scheduled it was simulated, not
-    // real.
+    // If a previous cleanup scheduled a destroy and setup is running
+    // again, that destroy was never real — cancel it. Strict Mode's
+    // replay runs synchronously (see FluidaProvider.strictmode.test.tsx),
+    // so a setup firing again before the deferred destroy's timeout
+    // elapses can only mean the "unmount" that scheduled it was
+    // simulated, not real.
     if (pendingDestroyRef.current !== null) {
       clearTimeout(pendingDestroyRef.current);
       pendingDestroyRef.current = null;

@@ -30,25 +30,19 @@ type StyleWithCustomProperty = CSSProperties & Record<`--${string}`, string | nu
 /**
  * Applies Core's typography.scale as a font-size multiplier.
  *
- * layout.typography.scale is a multiplier (roughly 1 to 1.25), not an
- * absolute size — and inline styles always win over a browser's own
- * user-agent stylesheet defaults (an <h1> is normally bigger than a
- * <p> only because of a UA stylesheet rule, which any inline
- * font-size unconditionally overrides). Because of that, this
- * component cannot both set a default font-size AND preserve each
- * semantic tag's natural size difference — no CSS unit choice avoids
- * that; it's a property of how the cascade works, not an
- * implementation detail here.
+ * The scale is a multiplier (roughly 1 to 1.4), not an absolute
+ * size — and an inline font-size always overrides a tag's natural
+ * size difference from the browser's default stylesheet. So this
+ * component can't both set a default font-size and preserve each
+ * tag's natural size (an <h1> looking bigger than a <p>): that's how
+ * the CSS cascade works, not something to work around here.
  *
- * The choice made: default to a flat `${scale}rem`, the same
- * computed size regardless of `as`. This is honest about what Fluida
- * actually knows (a multiplier) rather than guessing at proportions
- * it has no basis for. For a heading that should be visibly larger
- * than body text, use the `--fluida-type-scale` custom property this
- * component also sets, e.g. in your own CSS:
+ * The choice made: a flat `${scale}rem` regardless of `as` — honest
+ * about what Fluida actually knows (a multiplier), not a guess at
+ * proportions it has no basis for. For a heading that should look
+ * larger than body text, compose the `--fluida-type-scale` custom
+ * property this component also sets with your own base size:
  *   font-size: calc(2rem * var(--fluida-type-scale, 1));
- * That composes Fluida's scale with your own base size, without
- * needing to call any hook directly.
  */
 export const FluidaText = forwardRef<HTMLElement, FluidaTextProps>(
   function FluidaText({ as = 'p', style, ...rest }, ref) {

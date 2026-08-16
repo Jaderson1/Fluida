@@ -42,53 +42,38 @@ export interface FluidaAdaptiveGridProps extends ComponentPropsWithoutRef<'div'>
   /** When set, column counts whose resulting cell would be narrower than this are excluded from consideration entirely. Undefined (the default) applies no such constraint. */
   readonly minItemWidth?: number;
   /**
-   * When true, this grid's own measured height is never fed back into
-   * the layout computation — Core computes cellHeight (and this
-   * component then applies an explicit height, rows * cellHeight +
-   * (rows-1) * gap) purely from the measured width, minItemWidth, and
-   * strategy, instead of the height happening to already have
-   * whatever value it does (the 200px floor below, most commonly, on
-   * a container whose height nothing else determines). Only
-   * 'fit' + minItemWidth and 'preserve-ratio' + minItemWidth support
-   * this — 'fill' and 'balanced' need a real known height to mean
-   * anything, and throw the same FluidaConfigError Core itself raises
-   * for that combination, exactly like any other invalid
-   * configuration already does in this component. Defaults to false:
-   * existing behavior is entirely unchanged unless this is set.
+   * When true, computes cellHeight from measured width, minItemWidth,
+   * and strategy alone, then applies it as an explicit height —
+   * instead of feeding back whatever height the container already
+   * happens to have (commonly the 200px floor below, on a container
+   * nothing else gives a height to). Only 'fit' and 'preserve-ratio'
+   * support this; 'fill' and 'balanced' need a real known height and
+   * raise the same FluidaConfigError Core raises for that
+   * combination. Defaults to false — existing behavior is unchanged
+   * unless this is set.
    */
   readonly autoHeight?: boolean;
 }
 
 /**
- * Measures its own real rendered size — via ResizeObserver, not the
- * viewport — and distributes itemCount children across it according
- * to `strategy`. Independent from <FluidaProvider> and the viewport
- * primitives: there is no shared state to gain from requiring one.
+ * Measures its own real rendered size via ResizeObserver, not the
+ * viewport, and distributes itemCount children across it according
+ * to `strategy`. Independent from FluidaProvider — no shared state
+ * to gain from requiring it.
  *
- * Cell size is applied as explicit pixel dimensions, not
- * minmax(0, 1fr): this component computes the specific size that
- * best uses the real measured space for the real item count, and
- * letting the grid renegotiate that with 1fr would undo it. As with
- * FluidaGrid, this does not force line-wrapping inside a cell's own
- * content — that choice stays with whatever you render inside.
+ * Cell size is applied as explicit pixel dimensions rather than
+ * minmax(0, 1fr), since this component computes the specific size
+ * that best fits the real measured space, and 1fr would let the
+ * grid renegotiate that away.
  *
- * Why `minHeight`, not `height: '100%'`. An earlier version set
- * `height: '100%'` unconditionally. If the parent has no explicit
- * height, that resolves to `auto` per the CSS spec — meaning this
- * element's own rendered height then depends on its content, which
- * is `gridAutoRows: ${cellHeight}px`. On the very first render,
- * before any real measurement exists, `cellHeight` is `0` (the
- * not-yet-measured fallback) — so the element renders at height 0,
- * ResizeObserver reports height 0, computeContainerLayout returns
- * cellHeight 0 again, forever: a real, silent deadlock with no error,
- * reachable by any consumer who doesn't happen to give the parent an
- * explicit height. `minHeight` is a floor, not a guess at the final
- * height: it guarantees the very first measurement is never zero,
- * without requiring anything from the consumer's own CSS, and it
- * still lets a taller real layout grow past it once one is computed.
- * A consumer who wants a specific height or a different minimum can
- * still set `style.height` or `style.minHeight` directly — that
- * override still wins, exactly as before.
+ * Uses `minHeight`, not `height: '100%'`: with no explicit parent
+ * height, `height: 100%` resolves to `auto`, which depends on
+ * content (`gridAutoRows`), which depends on `cellHeight`, which is
+ * `0` before the first real measurement — a silent zero-height
+ * deadlock with no error. `minHeight` guarantees a nonzero first
+ * measurement without requiring anything from the consumer's CSS,
+ * and still lets a taller computed layout grow past it. A consumer
+ * who wants a specific height can still set `style.height` directly.
  */
 export const FluidaAdaptiveGrid = forwardRef<HTMLDivElement, FluidaAdaptiveGridProps>(
   function FluidaAdaptiveGrid(

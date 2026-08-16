@@ -7,16 +7,12 @@ import { createFluida } from '@fluida/core';
 import { FluidaProvider } from './FluidaProvider';
 import { useFluidaLayout } from './useFluidaLayout';
 
-// Strict Mode's render-phase double-invocation calls the useState
-// lazy initializer twice during a single mount — confirmed
-// empirically, not assumed: createFluida() is genuinely called twice
-// here, and only one of the two resulting instances ever actually
-// gets subscribed to. Which one that is isn't safe to assume by
-// position (first vs. last created) — every instance is wrapped with
-// its own destroy spy at creation time, and the live one is
-// identified afterward by which one actually received a subscribe()
-// call, which is the only thing that reliably distinguishes "this is
-// the instance React actually kept" from "this was discarded."
+// Strict Mode's double-invocation calls the useState lazy initializer
+// twice per mount — createFluida() genuinely runs twice, and only one
+// resulting instance ends up subscribed. Which one isn't safe to
+// assume by creation order, so each instance gets its own destroy
+// spy, and the live one is identified afterward by which one actually
+// received a subscribe() call.
 vi.mock('@fluida/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@fluida/core')>();
   return {

@@ -5,15 +5,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 
 /**
- * Standalone re-implementation of the same ResizeObserver +
+ * Standalone re-implementation of the ResizeObserver +
  * requestAnimationFrame coalescing pattern used in @fluida/react's
- * useFluidaContainerSize — not imported from @fluida/react itself.
- * dash-fluida depends only on @fluida/core, the same way @fluida/react
- * does; it does not depend on @fluida/react. useState/useEffect is
- * used here instead of useSyncExternalStore because a Dash custom
- * component only ever renders in the browser — there is no
- * server-side rendering concern to guard against here, unlike in the
- * React adapter.
+ * useFluidaContainerSize — dash-fluida depends only on @fluida/core,
+ * not on @fluida/react. useState/useEffect instead of
+ * useSyncExternalStore, since a Dash component only ever renders in
+ * the browser — no SSR concern here.
  */
 
 const DEFAULT_MIN_HEIGHT = 200;
@@ -37,39 +34,31 @@ export interface FluidaGridProps {
   readonly style?: CSSProperties;
   readonly className?: string;
   /**
-   * When true, the computed layout is also sent to the Python side via
-   * setProps (columns, rows, cellWidth, cellHeight), batched into one
-   * call per animation frame — never once per raw resize event.
-   * Defaults to false: by default, nothing is sent to the server at
-   * all, and the computed layout only drives this component's own
-   * rendering.
+   * When true, the computed layout is also sent to Python via
+   * setProps (columns, rows, cellWidth, cellHeight), batched to once
+   * per animation frame. Defaults to false — nothing is sent to the
+   * server otherwise.
    */
   readonly notify_layout_changes?: boolean;
   /**
-   * When true, this grid's own measured height is never fed back into
-   * the layout computation — @fluida/core computes cellHeight purely
-   * from the measured width, min_item_width, and strategy, and this
-   * component then applies an explicit height (rows * cellHeight +
-   * (rows-1) * gap) instead of the 200px floor below. Only
-   * strategy="fit"/min_item_width and strategy="preserve-ratio"/
-   * min_item_width support this; "fill" and "balanced" raise the same
-   * FluidaConfigError @fluida/core itself raises for that combination.
-   * Defaults to False: existing behavior is unchanged unless set.
+   * When true, computes cellHeight from measured width,
+   * min_item_width, and strategy alone, applied as an explicit height
+   * instead of the 200px floor below. Only "fit"/"preserve-ratio"
+   * with min_item_width support this; "fill"/"balanced" raise the
+   * same FluidaConfigError @fluida/core raises for that combination.
+   * Defaults to False — unchanged unless set.
    */
   readonly auto_height?: boolean;
   /**
-   * Forwarded as the rendered element's aria-label. FluidaGrid has no
-   * semantic meaning of its own to describe — it's a layout
-   * container, not a landmark or a widget — so nothing is set unless
-   * you provide one.
+   * Forwarded as the rendered element's aria-label. Nothing set
+   * unless provided — FluidaGrid is a layout container, not a
+   * landmark or widget, with no semantic meaning of its own.
    */
   readonly aria_label?: string;
   /**
-   * Any other DOM attribute — most commonly aria-* or data-* — to
-   * apply directly to the rendered element, e.g.
-   * extra_attrs={"data-testid": "charts-grid", "aria-describedby": "charts-help"}.
-   * FluidaGrid does not enumerate every possible attribute a
-   * consumer might need; this covers the rest without needing to.
+   * Any other DOM attribute, most commonly aria-* or data-*, applied
+   * directly to the rendered element, e.g.
+   * extra_attrs={"data-testid": "charts-grid"}.
    */
   readonly extra_attrs?: Record<string, string>;
   /** Provided by the Dash renderer itself. */

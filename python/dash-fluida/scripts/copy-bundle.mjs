@@ -47,17 +47,12 @@ if (existsSync(sourceMap)) {
 console.log(`Copied ${source} -> ${destination}`);
 
 /**
- * Makes the generated .map byte-identical across a Windows/macOS/Linux
- * build of the exact same source: sourcesContent embeds each source
- * file's text verbatim, including whatever line endings that file
- * happened to have on disk at build time (CRLF vs LF, depending on
- * the OS and git's own checkout behavior), and `sources` paths use
- * the OS's own path separator. Neither has any effect on how the map
- * actually functions — a debugger maps positions using `mappings`,
- * not by comparing sourcesContent's raw bytes — so normalizing both
- * to a single, fixed convention here doesn't change what the map
- * does, only makes two builds of the same source produce the same
- * file.
+ * Makes the .map byte-identical across OS-different builds of the
+ * same source: sourcesContent embeds each file's raw text (line
+ * endings and all) and `sources` uses the OS's path separator, but a
+ * debugger maps positions via `mappings`, not by comparing
+ * sourcesContent bytes — normalizing both here changes nothing about
+ * how the map works, only makes two builds of the same source match.
  */
 function normalizeSourceMap(mapPath) {
   const raw = readFileSync(mapPath, 'utf8');

@@ -87,23 +87,12 @@ if (areSnapshotsEqual(currentSnapshot, nextSnapshot)) return;
     notifyListeners();
   }
 
-  // Three independent signals, all routed through the same
-  // updateSnapshot — dedup is inherited for free from its existing
-  // areSnapshotsEqual check, whichever signal (or several at once)
-  // fires for the same underlying change.
-  //
-  // - resize: the normal case, and the only one that fired before.
-  // - visualViewport.resize: tracks the visual viewport separately
-  //   from the layout viewport (pinch-zoom, on-screen keyboards, and
-  //   in practice some DevTools device-emulation transitions that
-  //   don't reliably dispatch a plain window resize event on a page
-  //   that was already loaded before emulation was toggled).
-  // - orientationchange: a distinct signal on devices/emulators that
-  //   fire it independently of resize.
-  //
-  // None of this can guarantee correctness if a browser dispatches
-  // none of these three for a given change — that would need polling,
-  // which is deliberately out of scope here.
+  // Three independent signals feed the same updateSnapshot (dedup via
+  // areSnapshotsEqual): resize; visualViewport.resize, which tracks
+  // pinch-zoom and on-screen keyboards separately from the layout
+  // viewport; and orientationchange, which some devices fire without
+  // also firing resize. No polling fallback if a browser dispatches
+  // none of these — deliberately out of scope.
   function attachListeners(): void {
     window.addEventListener('resize', updateSnapshot);
     window.addEventListener('orientationchange', updateSnapshot);

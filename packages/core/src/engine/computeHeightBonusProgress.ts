@@ -1,34 +1,19 @@
 import { interpolateClamped } from './interpolateClamped';
 
-/**
- * Width must already be in this range before height contributes
- * anything at all. This is what keeps a tall, narrow viewport (a
- * phone in portrait, or a tablet) from ever being treated as
- * spacious just because its height/width ratio is large — the
- * bonus only exists for viewports already wide enough that "large
- * display" is a reasonable description on width alone.
- */
+// Width must reach 1920 before height contributes anything — this is
+// what keeps a tall, narrow phone or tablet from being treated as
+// spacious just because its height/width ratio is large. 1080 and
+// 2160 are real viewport heights (1080p, 4K), not tuning constants:
+// below 1080 the bonus is zero (1080p itself never changes), and it
+// reaches full value at 2160 without growing further past it.
 export const HEIGHT_BONUS_MINIMUM_WIDTH = 1920;
-
-/**
- * 1080 is a real, common viewport height (1080p) — not a starting
- * point chosen to make bonus math convenient. Below it, and at
- * exactly it, the bonus is zero: this is what keeps 1080p (and a
- * short, wide notebook screen below it) from changing at all.
- */
 export const HEIGHT_BONUS_MINIMUM_HEIGHT = 1080;
-
-/** 2160 is 4K's own height — the bonus reaches its full value there
- * and does not grow further past it. */
 export const HEIGHT_BONUS_MAXIMUM_HEIGHT = 2160;
 
 /**
- * 0..1 progress toward the full height bonus, or exactly 0 whenever
- * width hasn't reached HEIGHT_BONUS_MINIMUM_WIDTH. Shared by
- * computeTypography and computeSpacing so the same width/height
- * thresholds and the same interpolation apply to both — this
- * function does not decide what the bonus is used for or how large
- * it is; each caller multiplies this by its own bonus ceiling.
+ * 0..1 progress toward the full height bonus. Shared by
+ * computeTypography and computeSpacing — this function only computes
+ * the progress; each caller multiplies by its own bonus ceiling.
  */
 export function computeHeightBonusProgress(width: number, height: number): number {
   if (width < HEIGHT_BONUS_MINIMUM_WIDTH) {

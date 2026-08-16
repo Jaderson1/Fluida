@@ -7,17 +7,12 @@ import { computeContainerLayout } from './computeContainerLayout';
 import { FluidaConfigError } from '../resolveFluidaConfig';
 
 /**
- * Loads spec/conformance/layout-cases.json — a shared, language-neutral
- * set of computeContainerLayout inputs and expected outputs, meant to
- * eventually be checked against non-TypeScript implementations too
- * (Dash's Python side, or others, later). Read at runtime via fs,
- * deliberately not a static `import` of the JSON file: the file lives
- * outside this package's rootDir ("src"), and a module-level import of
- * something outside rootDir risks tsup/tsc build issues. A plain
- * runtime file read has no such constraint and needs no tsconfig
- * change — resolveJsonModule is already enabled here, but doesn't
- * apply to a file that's never imported as a module in the first
- * place.
+ * Loads spec/conformance/layout-cases.json — shared cases checked by
+ * both this TypeScript engine and fluida-core's Python port, so the
+ * two stay behaviorally aligned. Read at runtime via fs, not a static
+ * `import`: the file lives outside this package's rootDir ("src"),
+ * which a module-level JSON import of a file outside rootDir risks
+ * breaking under tsup/tsc.
  */
 
 interface ConformanceCase {

@@ -269,7 +269,3 @@ Issues and pull requests are welcome.
 2. Branch from `main`.
 3. Run the relevant test suites for whatever you changed (`pnpm test`, Python `pytest`, or both) before opening a PR — see [Testing](#testing) and [Development](#development).
 4. Keep changes to `@fluida/core`'s layout algorithm accompanied by conformance cases in `spec/conformance/layout-cases.json`, covering both languages.
-
-## License
-
-MIT — see [`LICENSE`](LICENSE).

@@ -18,6 +18,7 @@ export type {
   ContainerLayoutResult,
   ContainerLayoutStrategy,
   ContainerTier,
+  DisplayClass,
   GridLayout,
   LayoutTokens,
   SpacingConfig,

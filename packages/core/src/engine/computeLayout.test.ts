@@ -263,3 +263,56 @@ describe('computeLayout — height-aware typography/spacing (real device dimensi
     expect(uhd.spacing.page).toBe(beyondUhd.spacing.page);
   });
 });
+
+describe('computeLayout — display (integration)', () => {
+  it.each([
+    ['390x844 (mobile)', 390, 844, 'compact'],
+    ['768x1024 (tablet)', 768, 1024, 'compact'],
+    ['1366x768 (notebook)', 1366, 768, 'standard'],
+    ['1920x800 (short notebook)', 1920, 800, 'large'],
+    ['1920x1080 (FHD)', 1920, 1080, 'large'],
+    ['2560x1440 (QHD)', 2560, 1440, 'large'],
+    ['3440x1440 (ultrawide)', 3440, 1440, 'large'],
+    ['3840x1440 (4K width, ultrawide height)', 3840, 1440, 'large'],
+    ['3840x2160 (4K)', 3840, 2160, 'ultra'],
+  ] as const)('%s -> display = %s', (_label, width, height, expected) => {
+    expect(computeLayout(width, height).display).toBe(expected);
+  });
+
+  it('3440x1440 and 3840x2160 are not the same display class — width alone never decides ultra', () => {
+    expect(computeLayout(3440, 1440).display).not.toBe(computeLayout(3840, 2160).display);
+  });
+
+  it('a very wide but short viewport never reaches ultra from width alone', () => {
+    expect(computeLayout(10000, 800).display).toBe('large');
+  });
+
+  describe('boundary transitions at width=1920, height=1080, height=2160', () => {
+    it('width 1919 -> 1920 at a height below the bonus floor: standard -> large', () => {
+      expect(computeLayout(1919, 800).display).toBe('standard');
+      expect(computeLayout(1920, 800).display).toBe('large');
+    });
+
+    it('height crossing 1080 does not change display — 1080 is the height-bonus floor, not a display-class boundary', () => {
+      expect(computeLayout(1920, 1079).display).toBe('large');
+      expect(computeLayout(1920, 1080).display).toBe('large');
+      expect(computeLayout(1920, 1081).display).toBe('large');
+    });
+
+    it('height 2159 -> 2160 at a qualifying width: large -> ultra', () => {
+      expect(computeLayout(1920, 2159).display).toBe('large');
+      expect(computeLayout(1920, 2160).display).toBe('ultra');
+    });
+  });
+
+  it('display never regresses to a lower class as width grows at a fixed height, and never flickers back at higher widths', () => {
+    const order: Record<string, number> = { compact: 0, standard: 1, large: 2, ultra: 3 };
+    const widths = [390, 768, 1366, 1920, 2560, 3440, 3840];
+    let previousRank = -1;
+    for (const width of widths) {
+      const rank = order[computeLayout(width, 2160).display] as number;
+      expect(rank).toBeGreaterThanOrEqual(previousRank);
+      previousRank = rank;
+    }
+  });
+});

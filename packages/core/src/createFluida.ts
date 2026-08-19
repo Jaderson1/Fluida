@@ -34,7 +34,8 @@ function areLayoutsEqual(previous: LayoutTokens, next: LayoutTokens): boolean {
     previous.grid.columns === next.grid.columns &&
     previous.spacing.page === next.spacing.page &&
     previous.typography.scale === next.typography.scale &&
-    previous.container.maxWidth === next.container.maxWidth
+    previous.container.maxWidth === next.container.maxWidth &&
+    previous.display === next.display
   );
 }
 

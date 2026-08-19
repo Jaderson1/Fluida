@@ -1,3 +1,7 @@
+import type { DisplayClass } from './computeDisplayClass';
+
+export type { DisplayClass } from './computeDisplayClass';
+
 export type Breakpoint = 'mobile' | 'tablet' | 'desktop';
 
 export type Breakpoints = Readonly<Record<Breakpoint, number>>;
@@ -51,6 +55,8 @@ export interface LayoutTokens {
   readonly typography: TypographyLayout;
 
   readonly container: ContainerLayout;
+
+  readonly display: DisplayClass;
 }
 
 export interface EngineConfig {

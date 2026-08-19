@@ -26,6 +26,9 @@ export { useFluidaContainerLayout } from './useFluidaContainerLayout';
 export { useFluidaSnapshot } from './useFluidaSnapshot';
 export { useFluidaLayout } from './useFluidaLayout';
 
+export { useFluida } from './useFluida';
+export type { UseFluidaResult } from './useFluida';
+
 export type {
   ContainerLayoutOptions,
   ContainerLayoutResult,

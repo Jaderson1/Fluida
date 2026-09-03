@@ -161,6 +161,8 @@ Fluida's own responsibility ends at computing layout: columns, cell size, typogr
 
 Fluida complements CSS and container queries — it computes values you apply, rather than replacing the layout mechanisms browsers already provide.
 
+The range this project actively tests and tunes against is roughly 320px to 3000px wide — covering phones through large desktop monitors and most ultrawide/4K cases. Container tiers exist past 3000px (up to 3840px, see `defaultContainerTiers.ts`) and continue to work, but further tuning specifically for displays beyond that range is future work, not a guarantee today. This is a testing and quality-focus statement, not a code boundary — nothing in the engine checks for or branches on 3000px specifically.
+
 ## Monorepo structure
 
 ```text

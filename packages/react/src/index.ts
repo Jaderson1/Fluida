@@ -15,7 +15,12 @@ export type { FluidaStackProps } from './FluidaStack';
 export { FluidaText } from './FluidaText';
 export type { FluidaTextElement, FluidaTextProps } from './FluidaText';
 
+export { FluidaContainerGrid } from './FluidaContainerGrid';
+export type { FluidaContainerGridProps } from './FluidaContainerGrid';
+
+/** @deprecated Renamed to `FluidaContainerGrid` — see FluidaAdaptiveGrid.tsx. */
 export { FluidaAdaptiveGrid } from './FluidaAdaptiveGrid';
+/** @deprecated Renamed to `FluidaContainerGridProps`. */
 export type { FluidaAdaptiveGridProps } from './FluidaAdaptiveGrid';
 
 export { useFluidaContainerSize } from './useFluidaContainerSize';

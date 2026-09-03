@@ -12,9 +12,12 @@ import pytest
 from dash_fluida import FluidaGrid
 
 
-def test_requires_item_count():
-    with pytest.raises(TypeError):
-        FluidaGrid(children=["a"])
+def test_item_count_is_optional():
+    # Inference itself happens in the frontend (React.Children.count),
+    # not here — this only confirms the Python side no longer requires
+    # item_count and serializes None when it's omitted.
+    grid = FluidaGrid(children=["a"])
+    assert grid.to_plotly_json()["props"].get("item_count") is None
 
 
 def test_constructs_with_item_count():

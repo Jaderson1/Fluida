@@ -1,7 +1,7 @@
 import type { ContainerLayoutOptions, ContainerLayoutResult } from '@fluida/core';
 import { computeContainerLayout } from '@fluida/core';
 import type { CSSProperties, ReactNode } from 'react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Children, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 
 /**
@@ -25,8 +25,15 @@ const NOT_YET_MEASURED: ContainerLayoutResult = {
 export interface FluidaGridProps {
   readonly id?: string;
   readonly children?: ReactNode;
-  /** Required. */
-  readonly item_count: number;
+  /**
+   * How many cells to lay out. Optional — defaults to Children.count(children)
+   * when omitted (computed here, in the frontend, where children are
+   * real React nodes; not in the Python wrapper, where children can
+   * be a single component, a list, a string, or a number, and
+   * counting "items" from that is genuinely ambiguous). Pass this
+   * explicitly when the rendered count would be wrong for your case.
+   */
+  readonly item_count?: number;
   readonly strategy?: 'fit' | 'fill' | 'balanced' | 'preserve-ratio';
   readonly gap?: number;
   readonly aspect_ratio?: number;
@@ -85,6 +92,7 @@ export default function FluidaGrid(props: FluidaGridProps) {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [layout, setLayout] = useState<ContainerLayoutResult>(NOT_YET_MEASURED);
+  const effectiveItemCount = item_count ?? Children.count(children);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -93,7 +101,7 @@ export default function FluidaGrid(props: FluidaGridProps) {
     }
 
     const options: ContainerLayoutOptions = {
-      itemCount: item_count,
+      itemCount: effectiveItemCount,
       strategy,
       gap,
       aspectRatio: aspect_ratio,
@@ -160,7 +168,7 @@ export default function FluidaGrid(props: FluidaGridProps) {
       latestMeasurement = null;
     };
   }, [
-    item_count,
+    effectiveItemCount,
     strategy,
     gap,
     aspect_ratio,
@@ -211,7 +219,7 @@ export default function FluidaGrid(props: FluidaGridProps) {
 FluidaGrid.propTypes = {
   id: PropTypes.string,
   children: PropTypes.node,
-  item_count: PropTypes.number.isRequired,
+  item_count: PropTypes.number,
   strategy: PropTypes.oneOf(['fit', 'fill', 'balanced', 'preserve-ratio']),
   gap: PropTypes.number,
   aspect_ratio: PropTypes.number,

@@ -33,10 +33,14 @@ class FluidaGrid(Component):
         The ID of this component, used to identify Dash components in
         callbacks.
 
-    - item_count (number; required):
-        How many cells to lay out. Required — not inferred from
-        children, since Dash's own prop serialization doesn't reliably
-        distinguish real children from other falsy/structural values.
+    - item_count (number; optional):
+        How many cells to lay out. Optional — when omitted, the
+        frontend infers it from how many children actually render
+        (React's Children.count, computed there rather than here,
+        since children can be a single component, a list, a string,
+        or a number on this side, and counting "items" from that is
+        genuinely ambiguous in Python). Pass this explicitly when the
+        rendered count would be wrong for your case.
 
     - strategy (a value equal to: 'fit', 'fill', 'balanced', 'preserve-ratio'; default 'fit'):
         How the computed cell is sized. 'fit': square cells, the
@@ -174,12 +178,6 @@ class FluidaGrid(Component):
         _locals = locals()
         _locals.update(kwargs)
         args = {k: _locals[k] for k in _explicit_args if k != "children"}
-
-        if args.get("item_count") is None:
-            raise TypeError(
-                "FluidaGrid requires item_count — it is not optional, "
-                "and not inferred from children."
-            )
 
         super(FluidaGrid, self).__init__(children=children, **args)
 

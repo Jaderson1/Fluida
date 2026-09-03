@@ -309,3 +309,78 @@ describe('large container sizing (no independent ceiling)', () => {
     expect(cellWidthAt(at3840)).toBeGreaterThan(cellWidthAt(at2560));
   });
 });
+
+describe('item_count is optional, inferred from children when omitted', () => {
+  it('infers item_count from Children.count when omitted, matching an explicit equal value', () => {
+    installMockResizeObserver();
+    vi.useFakeTimers();
+
+    const { container } = render(
+      <FluidaGrid gap={0} strategy="fit">
+        <span>1</span>
+        <span>2</span>
+        <span>3</span>
+      </FluidaGrid>,
+    );
+    const element = container.querySelector('div') as HTMLElement;
+    act(() => {
+      getLiveObserverFor(element)?.trigger(300, 300);
+      vi.runAllTimers();
+    });
+    const inferred = element.style.gridTemplateColumns;
+
+    cleanup();
+    installMockResizeObserver();
+    const { container: explicitContainer } = render(
+      <FluidaGrid item_count={3} gap={0} strategy="fit">
+        <span>1</span>
+        <span>2</span>
+        <span>3</span>
+      </FluidaGrid>,
+    );
+    const explicitElement = explicitContainer.querySelector('div') as HTMLElement;
+    act(() => {
+      getLiveObserverFor(explicitElement)?.trigger(300, 300);
+      vi.runAllTimers();
+    });
+
+    expect(inferred).toBe(explicitElement.style.gridTemplateColumns);
+  });
+
+  it('an explicit item_count still overrides the rendered child count', () => {
+    installMockResizeObserver();
+    vi.useFakeTimers();
+
+    const { container } = render(
+      <FluidaGrid item_count={5} gap={0} strategy="fit">
+        <span>1</span>
+        <span>2</span>
+      </FluidaGrid>,
+    );
+    const element = container.querySelector('div') as HTMLElement;
+    act(() => {
+      getLiveObserverFor(element)?.trigger(300, 300);
+      vi.runAllTimers();
+    });
+    const withExplicitFive = element.style.gridTemplateColumns;
+
+    cleanup();
+    installMockResizeObserver();
+    const { container: inferredContainer } = render(
+      <FluidaGrid gap={0} strategy="fit">
+        <span>1</span>
+        <span>2</span>
+      </FluidaGrid>,
+    );
+    const inferredElement = inferredContainer.querySelector('div') as HTMLElement;
+    act(() => {
+      getLiveObserverFor(inferredElement)?.trigger(300, 300);
+      vi.runAllTimers();
+    });
+
+    // Same 2 rendered children, same container — the only difference
+    // is the explicit item_count={5} versus the inferred count of 2.
+    // Different layouts prove the explicit value actually took effect.
+    expect(withExplicitFive).not.toBe(inferredElement.style.gridTemplateColumns);
+  });
+});

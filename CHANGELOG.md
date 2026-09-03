@@ -1,13 +1,40 @@
 ## [Unreleased] - 0.2.4
 
+### Added
+- `LayoutTokens.display` (`'compact' | 'standard' | 'large' | 'ultra'`) — classifies how much room a viewport affords, derived from the same breakpoint/width/height signals `container.maxWidth` and the height-aware typography/spacing bonus already use. Not a resolution check: a 3440×1440 ultrawide and a 3840×2160 4K display, both wide, land in different classes because only the latter is also tall enough. `@fluida/core` only — `dash-fluida`'s `FluidaGrid` is deliberately container-based and has no viewport to classify.
+- `useFluida()` (`@fluida/react`) — convenience hook returning `{ viewport, layout, display }` together. Composes the existing `useFluidaSnapshot()`/`useFluidaLayout()`; does not duplicate their logic. Re-renders on every viewport change, unlike `useFluidaLayout()` alone, which only re-renders when a derived token changes — documented explicitly in `packages/react/README.md`.
+
+### Changed
+- **API simplification pass (pre-v1) — renamed** `FluidaAdaptiveGrid` → `FluidaContainerGrid`, to read unambiguously against the viewport-based `FluidaGrid` and match `dash-fluida`'s own (also container-based) `FluidaGrid`. `FluidaAdaptiveGrid` remains available as a deprecated alias — same component, same props, no runtime warning — for one pre-v1 cycle. See migration below.
+- `itemCount` (`@fluida/react`'s `FluidaContainerGrid`) and `item_count` (`dash-fluida`'s `FluidaGrid`) are now **optional**, inferred from the actual rendered child count when omitted. `dash-fluida` infers this in its frontend, where children are real React nodes (`Children.count`) — not in the Python wrapper, where children can be a single component, a list, a string, or a number, and counting "items" from that is genuinely ambiguous. Passing an explicit value continues to work identically, and is still the only way to protect against `Children.count` miscounting fragments or conditional children.
+- `typography.scale` and `spacing.page` now also grow a little further with viewport *height*, but only once width is already in the large-display range (≥1920px) and only within their own small, bounded range — this is what lets a 3840×2160 display end up modestly denser than a 3440×1440 one sharing the same width. `container.maxWidth` is unaffected by height. Internal change; no new public config field.
+- `examples/react-demo` no longer overrides `container.tiers` manually — it now relies on `@fluida/core`'s own (now-fixed) defaults.
+
+#### Migration
+
+```diff
+- import { FluidaAdaptiveGrid } from '@fluida/react';
++ import { FluidaContainerGrid } from '@fluida/react';
+
+- <FluidaAdaptiveGrid itemCount={2} strategy="preserve-ratio" aspectRatio={16 / 9}>
++ <FluidaContainerGrid strategy="preserve-ratio" aspectRatio={16 / 9}>
+    <ChartA />
+    <ChartB />
+- </FluidaAdaptiveGrid>
++ </FluidaContainerGrid>
+```
+
+```diff
+- FluidaGrid(children=[card1, card2, card3], item_count=3)
++ FluidaGrid(children=[card1, card2, card3])
+```
+
+Both changes are additive/optional at the API-surface level — nothing existing breaks by not migrating.
+
 ### Fixed
 - `@fluida/core`'s default container width tiers stopped growing at 1536px — any viewport from 1536px through 4K (3840px) received the exact same `container.maxWidth`. Extended the default tiers through 3840px.
 - `computeTypography`/`computeSpacing` defaults stopped growing at 1440px width, for the same reason.
 - A `pytest-playwright` dependency was missing from `dash-fluida`'s `e2e` extras — every E2E test would have failed at fixture resolution before ever reaching a real browser.
-
-### Changed
-- `typography.scale` and `spacing.page` now also grow a little further with viewport *height*, but only once width is already in the large-display range (≥1920px) and only within their own small, bounded range — this is what lets a 3840×2160 display end up modestly denser than a 3440×1440 one sharing the same width. `container.maxWidth` is unaffected by height. Internal change; no new public config field.
-- `examples/react-demo` no longer overrides `container.tiers` manually — it now relies on `@fluida/core`'s own (now-fixed) defaults.
 
 ### Tests
 - Property-based and explicit coverage for large-viewport container/typography/spacing progression, including ultrawide vs. 4K distinction, in both `@fluida/core` and `@fluida/react`.
@@ -16,8 +43,9 @@
 - Extreme container width coverage (0 through 10000px) across all four layout strategies.
 - SSR and React Strict Mode coverage extended for the height-aware behavior specifically.
 - Accessibility baseline tests added for `FluidaContainer`, `FluidaGrid` (viewport), and `FluidaStack` — confirmed already correct (all forward `aria-*`/`data-*` via prop spreading), not a fix.
+- `FluidaContainerGrid`/`FluidaGrid` (Dash) optional itemCount/item_count inference, and the `FluidaAdaptiveGrid` alias identity (`toBe`, not just equivalent behavior).
 
-
+## [0.2.3] - 2026-08-06
 
 ### Added
 - Accessibility support for Dash through `aria_label` and `extra_attrs`.
@@ -34,7 +62,6 @@
 - Dash Plotly resizing after layout stabilization.
 - Deterministic Dash bundle and source map generation.
 - ResizeObserver lifecycle edge cases after React component unmount.
-
 # Changelog
 
 All notable changes to this project are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).

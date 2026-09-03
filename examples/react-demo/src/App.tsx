@@ -13,6 +13,7 @@ import {
 } from './ChartPlaceholder';
 
 import { BreakpointBanner } from './BreakpointBanner';
+import { FluidaPanel } from './FluidaPanel';
 import { LayoutPanel } from './LayoutPanel';
 import { SnapshotPanel } from './SnapshotPanel';
 
@@ -48,6 +49,7 @@ export function App() {
         <FluidaStack direction="row" stackOnMobile className="panels-row">
           <SnapshotPanel />
           <LayoutPanel />
+          <FluidaPanel />
         </FluidaStack>
 
         <section className="panel grid-section">

@@ -22,6 +22,8 @@ export function LayoutPanel() {
         <dd>{layout.typography.scale.toFixed(3)}</dd>
         <dt>Container max-width</dt>
         <dd>{layout.container.maxWidth}px</dd>
+        <dt>Display</dt>
+        <dd>{layout.display}</dd>
       </dl>
     </section>
   );

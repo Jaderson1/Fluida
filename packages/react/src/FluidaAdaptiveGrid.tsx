@@ -8,6 +8,9 @@ export type { FluidaContainerGridProps as FluidaAdaptiveGridProps } from './Flui
  * `FluidaAdaptiveGrid` didn't say which of the two it was. Same
  * component, same props, same behavior — this is a plain re-export,
  * not a separate implementation, so there is nothing to migrate
- * except the import name. No runtime warning: this alias is expected
- * to exist for one pre-v1 cycle, not to be a permanent option.
+ * except the import name.
+ *
+ * Deprecation policy: this alias remains available and unchanged for
+ * the entire 1.x series. No runtime warning, no removal in a minor
+ * or patch release. Earliest possible removal is a 2.0.0 major.
  */

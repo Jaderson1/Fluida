@@ -1,5 +1,5 @@
 import {
-  FluidaAdaptiveGrid,
+  FluidaContainerGrid,
   FluidaContainer,
   FluidaGrid,
   FluidaProvider,
@@ -64,20 +64,20 @@ export function App() {
 
         <section className="panel adaptive-panel">
           <h2>
-            &lt;FluidaAdaptiveGrid&gt; — measures its real container, not the
-            viewport
+            &lt;FluidaContainerGrid&gt; — measures its real container, not
+            the viewport
           </h2>
 
           <p className="adaptive-note">
-            These two charts are laid out by <code>FluidaAdaptiveGrid</code>,
+            These two charts are laid out by <code>FluidaContainerGrid</code>,
             which measures this panel&apos;s own size with{' '}
             <code>ResizeObserver</code> and uses the{' '}
             <code>preserve-ratio</code> strategy to keep each chart at a 16:9
-            shape.
+            shape. <code>itemCount</code> isn&apos;t passed here — it&apos;s
+            inferred from the two children below.
           </p>
 
-          <FluidaAdaptiveGrid
-            itemCount={2}
+          <FluidaContainerGrid
             strategy="preserve-ratio"
             aspectRatio={16 / 9}
             gap={16}
@@ -87,7 +87,7 @@ export function App() {
           >
             <BarChartPlaceholder />
             <LineChartPlaceholder />
-          </FluidaAdaptiveGrid>
+          </FluidaContainerGrid>
         </section>
       </FluidaContainer>
     </FluidaProvider>

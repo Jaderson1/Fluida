@@ -8,12 +8,21 @@ Viewport responsiveness answers "what layout fits the browser window." Container
 
 Fluida exists for the cases where that arithmetic keeps showing up: dashboards with a variable number of cards, chart grids that need to preserve aspect ratio without a fixed pixel height, maps or embeds that need a real measured container, and any component meant to be reused where the surrounding page width isn't known in advance.
 
+## What should I use?
+
+```
+Responding to the browser window? → viewport layout (useFluidaLayout() / FluidaGrid, React)
+Responding to one component's own size? → container layout (FluidaContainerGrid, React; FluidaGrid, Dash)
+Using React? → npm install @fluida/react
+Using Dash? → pip install dash-fluida
+```
+
 ## Packages
 
 | Package | Language | What it does |
 | --- | --- | --- |
 | [`@fluida/core`](packages/core/README.md) | TypeScript | Framework-agnostic engine. Viewport layout and container layout, no dependencies, no DOM requirement beyond what each adapter provides. |
-| [`@fluida/react`](packages/react/README.md) | TypeScript (React) | React adapter: `FluidaProvider`, viewport-based components, and container-measuring components (`FluidaAdaptiveGrid`), built on `@fluida/core`. |
+| [`@fluida/react`](packages/react/README.md) | TypeScript (React) | React adapter: `FluidaProvider`, viewport-based components, and the container-measuring `FluidaContainerGrid`, built on `@fluida/core`. |
 | [`fluida-core`](python/fluida-core/README.md) | Python | Independent, pure-Python port of the same container layout algorithm — no JavaScript, no browser, checked against the same shared test cases as the TypeScript engine. |
 | [`dash-fluida`](python/dash-fluida/README.md) | Python + TypeScript | Dash custom component (`FluidaGrid`). Measurement and layout computation happen in the browser, using `@fluida/core` bundled into its frontend — the Python side declares the component and can optionally receive the computed layout back. |
 
@@ -21,31 +30,13 @@ Fluida exists for the cases where that arithmetic keeps showing up: dashboards w
 
 ## Installation
 
-None of Fluida's packages are published to npm or PyPI yet. Until they are, install from the repository:
-
 ```bash
-git clone https://github.com/Jaderson1/Fluida.git
-cd Fluida
-corepack enable
-pnpm install
-pnpm build
+npm install @fluida/core @fluida/react
 ```
 
-`@fluida/react` and `@fluida/core` can then be packed locally for use in another project:
-
 ```bash
-pnpm --filter @fluida/core pack
-pnpm --filter @fluida/react pack
+pip install fluida-core dash-fluida
 ```
-
-For Python, install either package directly from a local clone:
-
-```bash
-pip install ./python/fluida-core
-pip install ./python/dash-fluida
-```
-
-This section will be updated with real `npm install`/`pip install` commands once packages are published — see [Project status](#project-status).
 
 ## Quick start
 
@@ -64,26 +55,28 @@ const layout = computeContainerLayout(800, 600, {
 **React:**
 
 ```tsx
-import { FluidaContainer, FluidaProvider, FluidaText } from '@fluida/react';
+import { FluidaProvider, useFluida } from '@fluida/react';
+
+function Page() {
+  const { layout, display } = useFluida();
+  return <p>{layout.grid.columns} columns, display: {display}</p>;
+}
 
 export function App() {
   return (
     <FluidaProvider>
-      <FluidaContainer>
-        <FluidaText as="h1">My app</FluidaText>
-      </FluidaContainer>
+      <Page />
     </FluidaProvider>
   );
 }
 ```
 
-**`FluidaAdaptiveGrid`**, measuring its own container and computing its own height:
+**`FluidaContainerGrid`**, measuring its own container and computing its own height:
 
 ```tsx
-import { FluidaAdaptiveGrid } from '@fluida/react';
+import { FluidaContainerGrid } from '@fluida/react';
 
-<FluidaAdaptiveGrid
-  itemCount={4}
+<FluidaContainerGrid
   strategy="preserve-ratio"
   aspectRatio={16 / 9}
   minItemWidth={280}
@@ -94,7 +87,7 @@ import { FluidaAdaptiveGrid } from '@fluida/react';
   <ChartB />
   <ChartC />
   <ChartD />
-</FluidaAdaptiveGrid>;
+</FluidaContainerGrid>;
 ```
 
 **Python, framework-agnostic:**
@@ -114,7 +107,6 @@ from dash_fluida import FluidaGrid
 app = Dash(__name__)
 app.layout = html.Div([
     FluidaGrid(
-        item_count=4,
         strategy="preserve-ratio",
         aspect_ratio=16 / 9,
         min_item_width=280,
@@ -129,7 +121,7 @@ app.layout = html.Div([
 
 **Viewport layout** — breakpoint, grid columns, spacing, typography scale, and container max-width, all derived from the browser's own viewport width. This is what `FluidaProvider`, `FluidaContainer`, `FluidaGrid`, `FluidaStack`, and `FluidaText` use.
 
-**Container layout** — column count and cell size, derived from one specific element's real measured size and a known item count, independent of the viewport. This is what `computeContainerLayout` and `FluidaAdaptiveGrid` (React) / `FluidaGrid` (Dash) use.
+**Container layout** — column count and cell size, derived from one specific element's real measured size and a known item count, independent of the viewport. This is what `computeContainerLayout` and `FluidaContainerGrid` (React) / `FluidaGrid` (Dash) use.
 
 **Layout strategies** — `fit` (square cells), `preserve-ratio` (a fixed aspect ratio you set), `fill` (uses all available space, any resulting shape), `balanced` (less distorted than `fill` without forcing a square). `fill` and `balanced` require a known container height; `fit` and `preserve-ratio` can run without one.
 
@@ -137,7 +129,9 @@ app.layout = html.Div([
 
 **Typography and spacing** — viewport layout also produces a typography scale and a spacing value, both derived the same way as breakpoints, available via `useFluidaLayout()` in React or the equivalent viewport-layout fields in Core.
 
-**Subscriptions and lifecycle** — `useFluidaSnapshot()` and `useFluidaLayout()` (React) subscribe to viewport changes and re-render only when the relevant values change; container-based components use `ResizeObserver`, coalesced to at most one recomputation per animation frame.
+**Display class** (`layout.display`) — a coarse `'compact' | 'standard' | 'large' | 'ultra'` classification of how much room a viewport affords, derived from the same width/height signals as the above — not a resolution check. See `packages/core/README.md` for the exact rule.
+
+**Subscriptions and lifecycle** — `useFluida()`, `useFluidaSnapshot()`, and `useFluidaLayout()` (React) subscribe to viewport changes; `useFluida()` re-renders on every viewport change, while `useFluidaLayout()` alone re-renders only when a derived value (breakpoint, columns, spacing, typography, display) actually changes. Container-based components use `ResizeObserver`, coalesced to at most one recomputation per animation frame.
 
 ## Use cases
 

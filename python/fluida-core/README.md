@@ -2,7 +2,7 @@
 
 A framework-agnostic, pure-Python container layout engine. Computes how many columns and rows to use, and what size each cell should be, from a real container size and a known item count.
 
-**Status: pre-release, `0.2.0`.** Not published to PyPI yet.
+**Status: public beta, pre-1.0.** Published on PyPI.
 
 This is an independent Python port of the same algorithm implemented in [`@fluida/core`](https://github.com/Jaderson1/Fluida/tree/main/packages/core) (TypeScript) — not a wrapper around it. No JavaScript, Node.js, subprocess, or browser is involved anywhere in this package. Both implementations are checked against the same shared, language-neutral test cases in [`spec/conformance/layout-cases.json`](../../spec/conformance/layout-cases.json), at the root of the [Fluida monorepo](https://github.com/Jaderson1/Fluida).
 

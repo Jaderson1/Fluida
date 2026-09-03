@@ -2,7 +2,7 @@
 
 A Dash custom component (`FluidaGrid`) that measures its own real container size in the browser and lays out its children using the same layout engine as [`@fluida/core`](https://github.com/Jaderson1/Fluida/tree/main/packages/core).
 
-**Status: pre-release, `0.2.0`.** Not published to PyPI yet.
+**Status: public beta, pre-1.0.** Published on PyPI.
 
 ## Architecture
 
@@ -28,6 +28,8 @@ pip install -e path/to/dash-fluida
 
 ## Usage
 
+Basic — `item_count` is inferred from `children`:
+
 ```python
 from dash import Dash, html
 from dash_fluida import FluidaGrid
@@ -36,10 +38,6 @@ app = Dash(__name__)
 
 app.layout = html.Div([
     FluidaGrid(
-        item_count=6,
-        gap=16,
-        min_item_width=280,
-        strategy="fill",
         children=[html.Div(f"Card {i}") for i in range(6)],
     ),
 ])
@@ -48,28 +46,33 @@ if __name__ == "__main__":
     app.run(debug=True)
 ```
 
+Common customization — a minimum card width:
+
+```python
+FluidaGrid(min_item_width=220, children=[...])
+```
+
 ## Props
 
-| Prop                                         | Type                                                | Default | Notes                                                                                          |
-| -------------------------------------------- | --------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------- |
-| `item_count`                                 | `int`                                               | —       | Required. Positive integer only — `1.5`, `True`/`False`, `None` all raise `FluidaConfigError`. |
-| `strategy`                                   | `"fit" \| "fill" \| "balanced" \| "preserve-ratio"` | `"fit"` | Anything else raises `FluidaConfigError`.                                                      |
-| `gap`                                        | `float`                                             | `16`    |                                                                                                |
-| `aspect_ratio`                               | `float`                                             | `1`     | Only used by `"preserve-ratio"`.                                                               |
-| `min_item_width`                             | `float`                                             | `None`  | Omitted applies no constraint.                                                                 |
-| `auto_height`                                | `bool`                                              | `False` | See below.                                                                                     |
-| `style`                                      | `dict`                                              | `None`  | Merged with (and overriding) the layout-driven inline styles.                                  |
-| `className`                                  | `str`                                               | `None`  |                                                                                                |
-| `notify_layout_changes`                      | `bool`                                              | `False` | See below.                                                                                     |
-| `columns`, `rows`, `cellWidth`, `cellHeight` | —                                                   | —       | Output-only; populated when `notify_layout_changes=True`.                                      |
+| Prop                                         | Type                                                | Default | Notes                                                                        |
+| -------------------------------------------- | --------------------------------------------------- | ------- | ----------------------------------------------------------------------------- |
+| `item_count`                                 | `int`                                               | inferred from `children` | Pass explicitly only if the rendered count would be wrong (e.g. `None`/conditional children). |
+| `strategy`                                   | `"fit" \| "fill" \| "balanced" \| "preserve-ratio"` | `"fit"` | Anything else raises `FluidaConfigError`.                                     |
+| `gap`                                        | `float`                                             | `16`    |                                                                                 |
+| `aspect_ratio`                               | `float`                                             | `1`     | Only used by `"preserve-ratio"`.                                               |
+| `min_item_width`                             | `float`                                             | `None`  | Omitted applies no constraint.                                                 |
+| `auto_height`                                | `bool`                                              | `False` | See below. Advanced.                                                          |
+| `style`                                      | `dict`                                              | `None`  | Merged with (and overriding) the layout-driven inline styles.                 |
+| `className`                                  | `str`                                               | `None`  |                                                                                 |
+| `notify_layout_changes`                      | `bool`                                              | `False` | See below. Advanced.                                                          |
+| `columns`, `rows`, `cellWidth`, `cellHeight` | —                                                   | —       | Output-only; populated when `notify_layout_changes=True`.                     |
 
-## `auto_height`
+## `auto_height` (advanced)
 
 By default, this component needs both a real measured width and height. Set `auto_height=True` to compute the layout from width alone — only with `strategy="fit"` or `strategy="preserve-ratio"`, and only with `min_item_width` also set; `"fill"` and `"balanced"` raise the same `FluidaConfigError` `@fluida/core` itself raises for that combination.
 
 ```python
 FluidaGrid(
-    item_count=4,
     strategy="preserve-ratio",
     aspect_ratio=4 / 3,
     min_item_width=300,
@@ -80,12 +83,12 @@ FluidaGrid(
 
 The element's height is then set explicitly — computed from the real result (`rows * cellHeight + (rows - 1) * gap`) — instead of left at a fixed minimum.
 
-## `notify_layout_changes`
+## `notify_layout_changes` (advanced)
 
 By default (`False`), the computed layout only drives this component's own rendering — nothing is ever sent to the Python side, and no round-trip happens on resize. Set it to `True` to also receive `columns`/`rows`/`cellWidth`/`cellHeight` as props, useful for a callback reacting to the computed layout:
 
 ```python
-FluidaGrid(item_count=6, notify_layout_changes=True, id="grid")
+FluidaGrid(notify_layout_changes=True, id="grid", children=[...])
 
 @app.callback(Output("info", "children"), Input("grid", "columns"))
 def show_columns(columns):

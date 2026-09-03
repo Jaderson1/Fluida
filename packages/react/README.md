@@ -109,7 +109,7 @@ h1 {
 
 ## `FluidaContainerGrid`
 
-> Renamed from `FluidaAdaptiveGrid` before v1, to read unambiguously against the viewport-based `FluidaGrid` above (and to match `dash-fluida`'s own `FluidaGrid`, also container-based). `FluidaAdaptiveGrid` still works — exported as a deprecated alias, same component, same props — for one pre-v1 cycle.
+> Renamed from `FluidaAdaptiveGrid` before v1, to read unambiguously against the viewport-based `FluidaGrid` above (and to match `dash-fluida`'s own `FluidaGrid`, also container-based). `FluidaAdaptiveGrid` still works — exported as a deprecated alias, same component, same props, no runtime warning — for the entire `1.x` series. Earliest possible removal is a `2.0.0` major.
 
 ```tsx
 import { FluidaContainerGrid } from '@fluida/react';

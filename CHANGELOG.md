@@ -1,11 +1,13 @@
 ## [Unreleased] - 0.2.4
 
+> A `v0.2.4` git tag exists in this repository's history, but no package manifest was ever bumped to `0.2.4` and nothing at that version was published to npm or PyPI — `0.2.3` remains the latest published version everywhere. This section is what `0.2.4` will contain once it's actually released.
+
 ### Added
 - `LayoutTokens.display` (`'compact' | 'standard' | 'large' | 'ultra'`) — classifies how much room a viewport affords, derived from the same breakpoint/width/height signals `container.maxWidth` and the height-aware typography/spacing bonus already use. Not a resolution check: a 3440×1440 ultrawide and a 3840×2160 4K display, both wide, land in different classes because only the latter is also tall enough. `@fluida/core` only — `dash-fluida`'s `FluidaGrid` is deliberately container-based and has no viewport to classify.
 - `useFluida()` (`@fluida/react`) — convenience hook returning `{ viewport, layout, display }` together. Composes the existing `useFluidaSnapshot()`/`useFluidaLayout()`; does not duplicate their logic. Re-renders on every viewport change, unlike `useFluidaLayout()` alone, which only re-renders when a derived token changes — documented explicitly in `packages/react/README.md`.
 
 ### Changed
-- **API simplification pass (pre-v1) — renamed** `FluidaAdaptiveGrid` → `FluidaContainerGrid`, to read unambiguously against the viewport-based `FluidaGrid` and match `dash-fluida`'s own (also container-based) `FluidaGrid`. `FluidaAdaptiveGrid` remains available as a deprecated alias — same component, same props, no runtime warning — for one pre-v1 cycle. See migration below.
+- **API simplification pass (pre-v1) — renamed** `FluidaAdaptiveGrid` → `FluidaContainerGrid`, to read unambiguously against the viewport-based `FluidaGrid` and match `dash-fluida`'s own (also container-based) `FluidaGrid`. `FluidaAdaptiveGrid` remains available as a deprecated alias — same component, same props, no runtime warning — for the entire `1.x` series; earliest possible removal is a `2.0.0` major. See migration below.
 - `itemCount` (`@fluida/react`'s `FluidaContainerGrid`) and `item_count` (`dash-fluida`'s `FluidaGrid`) are now **optional**, inferred from the actual rendered child count when omitted. `dash-fluida` infers this in its frontend, where children are real React nodes (`Children.count`) — not in the Python wrapper, where children can be a single component, a list, a string, or a number, and counting "items" from that is genuinely ambiguous. Passing an explicit value continues to work identically, and is still the only way to protect against `Children.count` miscounting fragments or conditional children.
 - `typography.scale` and `spacing.page` now also grow a little further with viewport *height*, but only once width is already in the large-display range (≥1920px) and only within their own small, bounded range — this is what lets a 3840×2160 display end up modestly denser than a 3440×1440 one sharing the same width. `container.maxWidth` is unaffected by height. Internal change; no new public config field.
 - `examples/react-demo` no longer overrides `container.tiers` manually — it now relies on `@fluida/core`'s own (now-fixed) defaults.
@@ -30,6 +32,8 @@
 ```
 
 Both changes are additive/optional at the API-surface level — nothing existing breaks by not migrating.
+
+**Deprecation policy:** `FluidaAdaptiveGrid` stays exactly as it is — same behavior, no runtime warning — for the entire `1.x` series. It will not be removed in any `1.x` minor or patch release. Earliest possible removal is a `2.0.0` major.
 
 ### Fixed
 - `@fluida/core`'s default container width tiers stopped growing at 1536px — any viewport from 1536px through 4K (3840px) received the exact same `container.maxWidth`. Extended the default tiers through 3840px.

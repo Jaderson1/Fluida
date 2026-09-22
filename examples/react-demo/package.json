@@ -1,7 +1,7 @@
 {
   "name": "@fluida/react-demo",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Live browser demo for Fluida — resize the window to see layout values update in real time",
   "type": "module",
   "scripts": {

@@ -4,7 +4,7 @@ The framework-agnostic engine behind Fluida. Computes layout decisions from eith
 
 [![npm](https://img.shields.io/npm/v/@fluida/core)](https://www.npmjs.com/package/@fluida/core)
 
-**Status:** public beta, pre-1.0.
+**Status:** stable, v1.x.
 
 ## Installation
 

@@ -1,6 +1,6 @@
-## [Unreleased] - 0.2.4
+## [Unreleased] - 1.0.0
 
-> A `v0.2.4` git tag exists in this repository's history, but no package manifest was ever bumped to `0.2.4` and nothing at that version was published to npm or PyPI — `0.2.3` remains the latest published version everywhere. This section is what `0.2.4` will contain once it's actually released.
+> A `v1.0.0` git tag exists in this repository's history, but no package manifest was ever bumped to `1.0.0` and nothing at that version was published to npm or PyPI — `1.0.0` remains the latest published version everywhere. This section is what `1.0.0` will contain once it's actually released.
 
 ### Added
 - `LayoutTokens.display` (`'compact' | 'standard' | 'large' | 'ultra'`) — classifies how much room a viewport affords, derived from the same breakpoint/width/height signals `container.maxWidth` and the height-aware typography/spacing bonus already use. Not a resolution check: a 3440×1440 ultrawide and a 3840×2160 4K display, both wide, land in different classes because only the latter is also tall enough. `@fluida/core` only — `dash-fluida`'s `FluidaGrid` is deliberately container-based and has no viewport to classify.

@@ -2,7 +2,7 @@
 
 A Dash custom component (`FluidaGrid`) that measures its own real container size in the browser and lays out its children using the same layout engine as [`@fluida/core`](https://github.com/Jaderson1/Fluida/tree/main/packages/core).
 
-**Status: public beta, pre-1.0.** Published on PyPI.
+**Status: stable, v1.x.** Published on PyPI.
 
 ## Architecture
 

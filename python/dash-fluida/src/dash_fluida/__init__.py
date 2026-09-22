@@ -2,7 +2,7 @@
 
 from .FluidaGrid import FluidaGrid
 
-__version__ = "0.2.3"
+__version__ = "1.0.0"
 
 _js_dist = [
     {

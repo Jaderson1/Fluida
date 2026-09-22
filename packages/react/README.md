@@ -4,7 +4,7 @@ The official React integration for [`@fluida/core`](../core), including a Provid
 
 [![npm](https://img.shields.io/npm/v/@fluida/react)](https://www.npmjs.com/package/@fluida/react)
 
-**Status:** public beta, pre-1.0.
+**Status:** stable, v1.x.
 
 ## Which API should I use?
 

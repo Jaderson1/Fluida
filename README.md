@@ -245,13 +245,13 @@ CI runs every suite above on each push; see the workflow badge for current statu
 
 ## Project status
 
-Public beta, `v0.2.x`. Pre-1.0: the public API can still change before a `v1.0.0` release, though nothing in this series has removed working functionality outright — see [`CHANGELOG.md`](CHANGELOG.md) for what's changed release to release. Versioning follows semver once `v1.0.0` lands; until then, treat minor version bumps as the point where a breaking change is most likely to be documented.
+Stable `v1.x`. Fluida follows semantic versioning: backward-compatible features and fixes may be added within the `1.x` series, while intentional breaking changes are reserved for a future major release. See [`CHANGELOG.md`](CHANGELOG.md) for release history.
 
 ## Roadmap
 
 Not commitments with dates — a rough sense of what's next, based on what's already in progress in this repository:
 
-- Stabilizing the public API ahead of a `v1.0.0` release.
+- Improving documentation, real-world adoption, and large-display behavior throughout the `1.x` series.
 - Publishing all four packages to npm and PyPI.
 - More real-world examples beyond the two demos in this repository.
 - Expanded documentation, and performance benchmarks where they'd actually inform a decision (column-count search cost at large item counts, for example).
